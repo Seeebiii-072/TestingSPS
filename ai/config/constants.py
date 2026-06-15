@@ -43,6 +43,43 @@ class SupportTeam(str, Enum):
     SECURITY_OPERATIONS = "security_operations"
 
 
+class TicketSource(str, Enum):
+    EMAIL = "email"
+    PORTAL_FORM = "portal_form"
+    CHAT = "chat"
+
+
+class TicketStatus(str, Enum):
+    OPEN = "open"
+    ASSIGNED = "assigned"
+    IN_PROGRESS = "in_progress"
+    ESCALATED = "escalated"
+    RESOLVED = "resolved"
+    CLOSED = "closed"
+
+
+class SLAStatus(str, Enum):
+    ON_TRACK = "on_track"
+    AT_RISK = "at_risk"
+    BREACHED = "breached"
+    MET = "met"
+
+
+class TimelineEventType(str, Enum):
+    TICKET_CREATED = "ticket_created"
+    COMMENT = "comment"
+    EMAIL_EVENT = "email_event"
+    FORM_SUBMISSION = "form_submission"
+    CHAT_MESSAGE = "chat_message"
+    ASSIGNMENT = "assignment"
+    REASSIGNMENT = "reassignment"
+    ESCALATION = "escalation"
+    STATUS_CHANGE = "status_change"
+    EMAIL_REPLY = "email_reply"
+    PORTAL_REPLY = "portal_reply"
+    AI_SUMMARY_EDITED = "ai_summary_edited"
+
+
 ALLOWED_CATEGORIES = tuple(item.value for item in TicketCategory)
 ALLOWED_TICKET_PREFILL_CATEGORIES = tuple(
     item.value for item in TicketPrefillCategory

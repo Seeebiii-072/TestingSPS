@@ -1,6 +1,23 @@
-from pydantic import BaseModel, Field
+from enum import Enum
 
-from ai.config.constants import RiskLevel, SupportTeam, TicketCategory, TicketPriority
+import re
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from ai.config.constants import TicketPrefillCategory, TicketPriority
+
+
+class ClassifierRisk(str, Enum):
+    STANDARD = "standard"
+    HIGH = "high"
+
+
+class ClassifierTeam(str, Enum):
+    IT = "it"
+    SECURITY = "security"
+    DEVOPS = "devops"
+    HR = "hr"
+    MANAGEMENT = "management"
 
 
 class ClassifierRequest(BaseModel):
@@ -9,9 +26,21 @@ class ClassifierRequest(BaseModel):
 
 
 class ClassifierResponse(BaseModel):
-    category: TicketCategory
+    model_config = ConfigDict(extra="forbid")
+
+    category: TicketPrefillCategory
     priority: TicketPriority
-    risk: RiskLevel
-    assigned_team: SupportTeam
-    confidence: float = Field(ge=0.0, le=1.0)
-    rationale: str | None = None
+    risk_level: ClassifierRisk
+    team: ClassifierTeam
+    reasoning: str = Field(min_length=1, max_length=1_000)
+
+    @field_validator("reasoning")
+    @classmethod
+    def require_one_sentence(cls, value: str) -> str:
+        reasoning = value.strip()
+        sentences = [
+            item for item in re.split(r"(?<=[.!?])\s+", reasoning) if item
+        ]
+        if len(sentences) != 1:
+            raise ValueError("reasoning must contain exactly one sentence.")
+        return reasoning

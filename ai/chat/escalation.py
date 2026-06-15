@@ -73,24 +73,6 @@ def assess_escalation(
     *,
     repeated_count: int = 1,
 ) -> EscalationDecision:
-    if repeated_count >= 3:
-        return EscalationDecision(
-            required=True,
-            response=(
-                "This issue remains unresolved after repeated attempts and requires "
-                "a support agent."
-            ),
-            ticket_prefill=TicketPrefill(
-                subject=_subject(message, "Repeated unresolved helpdesk question"),
-                description=(
-                    "The user asked the same question three times without resolution. "
-                    "A support agent should review the request and conversation."
-                ),
-                category=TicketPrefillCategory.GENERAL_IT,
-            ),
-            reason="repeated_question",
-        )
-
     if _matches_any(message, OTHER_USER_TICKET_PATTERNS):
         return EscalationDecision(
             required=True,
@@ -140,6 +122,24 @@ def assess_escalation(
                 category=TicketPrefillCategory.IDENTITY_ACCESS,
             ),
             reason="privileged_access",
+        )
+
+    if repeated_count >= 3:
+        return EscalationDecision(
+            required=True,
+            response=(
+                "This issue remains unresolved after repeated attempts and requires "
+                "a support agent."
+            ),
+            ticket_prefill=TicketPrefill(
+                subject=_subject(message, "Repeated unresolved helpdesk question"),
+                description=(
+                    "The user asked the same question three times without resolution. "
+                    "A support agent should review the request and conversation."
+                ),
+                category=TicketPrefillCategory.GENERAL_IT,
+            ),
+            reason="repeated_question",
         )
 
     return EscalationDecision(required=False)

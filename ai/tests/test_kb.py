@@ -1,13 +1,15 @@
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from ai.config.settings import get_settings
 from ai.kb.chunker import chunk_text
 from ai.kb.loader import load_all_documents
 from ai.kb.retriever import search
-from ai.kb.vector_store import VectorSearchResult
+from ai.kb.vector_store import StoredDocument, VectorSearchResult
+from ai.services.kb_service import KnowledgeBaseService, index_all_documents
 from ai.schemas.kb import KnowledgeBaseDocumentRequest
 
 
@@ -20,6 +22,29 @@ class FakeVectorStore:
         del query
         self.requested_top_k = top_k
         return self.results[:top_k]
+
+
+class FakeSyncVectorStore:
+    def __init__(self) -> None:
+        self.documents: dict[str, StoredDocument] = {}
+        self.replacements: list[str] = []
+
+    def list_documents(self) -> list[StoredDocument]:
+        return list(self.documents.values())
+
+    def replace_document(self, filename, chunks) -> int:
+        self.replacements.append(filename)
+        self.documents[filename] = StoredDocument(
+            filename=filename,
+            chunk_count=len(chunks),
+            created_at=None,
+            document_hash=chunks[0].document_hash,
+        )
+        return len(chunks)
+
+    def delete_document(self, filename: str) -> int:
+        document = self.documents.pop(filename, None)
+        return document.chunk_count if document else 0
 
 
 class KnowledgeBaseTests(unittest.TestCase):
@@ -48,6 +73,7 @@ class KnowledgeBaseTests(unittest.TestCase):
         self.assertTrue(all(chunk.document_name == "Guide.txt" for chunk in chunks))
         self.assertEqual(len({chunk.chunk_id for chunk in chunks}), len(chunks))
         self.assertIn(chunks[0].content[-40:].strip(), chunks[1].content)
+        self.assertTrue(all(chunk.document_hash for chunk in chunks))
 
     def test_document_request_rejects_paths_and_non_txt_files(self) -> None:
         invalid_names = ("guide.pdf", "../guide.txt", "folder\\guide.txt")
@@ -101,6 +127,56 @@ class KnowledgeBaseTests(unittest.TestCase):
 
     def test_empty_store_returns_no_results(self) -> None:
         self.assertEqual(search("anything", vector_store=FakeVectorStore()), [])
+
+    def test_retrieval_skips_records_with_incomplete_metadata(self) -> None:
+        store = FakeVectorStore(
+            [
+                VectorSearchResult(
+                    content="Incomplete record.",
+                    distance=0.1,
+                    metadata={"document_name": "Broken.txt"},
+                )
+            ]
+        )
+
+        self.assertEqual(search("record", vector_store=store), [])
+
+    def test_startup_indexing_skips_unchanged_documents(self) -> None:
+        store = FakeSyncVectorStore()
+
+        first = index_all_documents(vector_store=store)
+        second = index_all_documents(vector_store=store)
+
+        self.assertEqual(len(first), 10)
+        self.assertEqual(second, {})
+        self.assertEqual(len(store.replacements), 10)
+
+    def test_kb_create_update_list_and_delete(self) -> None:
+        store = FakeSyncVectorStore()
+        service = KnowledgeBaseService(vector_store=store)
+
+        with TemporaryDirectory() as directory:
+            with patch(
+                "ai.services.kb_service.DOCUMENTS_DIRECTORY",
+                Path(directory),
+            ):
+                created = service.create(
+                    KnowledgeBaseDocumentRequest(
+                        filename="Test Guide.txt",
+                        content="# Overview\nInitial content.",
+                    )
+                )
+                listed = service.list_documents()
+                updated = service.update(
+                    "Test Guide.txt",
+                    "# Overview\nUpdated content.",
+                )
+                deleted = service.delete("Test Guide.txt")
+
+        self.assertEqual(created.status, "created")
+        self.assertEqual([item.filename for item in listed], ["Test Guide.txt"])
+        self.assertEqual(updated.status, "updated")
+        self.assertGreater(deleted.deleted_chunks, 0)
 
 
 if __name__ == "__main__":

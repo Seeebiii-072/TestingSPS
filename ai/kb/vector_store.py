@@ -20,6 +20,7 @@ class StoredDocument:
     filename: str
     chunk_count: int
     created_at: datetime | None
+    document_hash: str | None
 
 
 @dataclass(frozen=True)
@@ -98,6 +99,11 @@ class VectorStore:
                     filename=filename,
                     chunk_count=len(items),
                     created_at=created_at,
+                    document_hash=(
+                        str(items[0]["document_hash"])
+                        if items[0].get("document_hash")
+                        else None
+                    ),
                 )
             )
         return sorted(documents, key=lambda item: item.filename.lower())

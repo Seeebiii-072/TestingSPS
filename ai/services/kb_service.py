@@ -4,7 +4,7 @@ from pathlib import Path
 from ai.config.settings import get_settings
 from ai.kb.chunker import chunk_text
 from ai.kb.loader import DOCUMENTS_DIRECTORY, LoadedDocument, load_all_documents
-from ai.kb.retriever import search as semantic_search
+from ai.kb.retriever import RetrievalResult, search as semantic_search
 from ai.kb.vector_store import VectorStore, get_vector_store
 from ai.schemas.kb import (
     KnowledgeBaseDeleteResponse,
@@ -70,17 +70,28 @@ def index_all_documents(
     indexed: dict[str, int] = {}
     documents = load_all_documents()
     filenames = {document.document_name for document in documents}
-    for stored_document in store.list_documents():
+    stored_documents = {
+        document.filename: document for document in store.list_documents()
+    }
+    for stored_document in stored_documents.values():
         if stored_document.filename not in filenames:
             store.delete_document(stored_document.filename)
 
     for document in documents:
         chunks = _chunks_for(document)
-        if chunks:
-            indexed[document.document_name] = store.replace_document(
-                document.document_name,
-                chunks,
-            )
+        if not chunks:
+            continue
+        stored = stored_documents.get(document.document_name)
+        if (
+            stored is not None
+            and stored.document_hash == chunks[0].document_hash
+            and stored.chunk_count == len(chunks)
+        ):
+            continue
+        indexed[document.document_name] = store.replace_document(
+            document.document_name,
+            chunks,
+        )
     return indexed
 
 
@@ -119,8 +130,9 @@ def update_document(
     return chunk_count
 
 
-def search(query: str, top_k: int | None = None) -> KnowledgeBaseSearchResponse:
-    results = semantic_search(query, top_k)
+def _search_response(
+    results: list[RetrievalResult],
+) -> KnowledgeBaseSearchResponse:
     if not results:
         return KnowledgeBaseSearchResponse(
             results=[],
@@ -146,6 +158,10 @@ def search(query: str, top_k: int | None = None) -> KnowledgeBaseSearchResponse:
         status="success",
         answer_available=True,
     )
+
+
+def search(query: str, top_k: int | None = None) -> KnowledgeBaseSearchResponse:
+    return _search_response(semantic_search(query, top_k))
 
 
 class KnowledgeBaseService:
@@ -226,27 +242,4 @@ class KnowledgeBaseService:
             limit,
             vector_store=self._vector_store,
         )
-        if not results:
-            return KnowledgeBaseSearchResponse(
-                results=[],
-                status="no_answer",
-                answer_available=False,
-                message="No sufficiently relevant knowledge-base content was found.",
-            )
-        return KnowledgeBaseSearchResponse(
-            results=[
-                KnowledgeBaseSearchResult(
-                    content=result.content,
-                    score=result.score,
-                    document_name=result.document_name,
-                    section=result.section,
-                    chunk_id=result.chunk_id,
-                    source_path=result.source_path,
-                    created_at=datetime.fromisoformat(result.created_at),
-                    citation=result.citation,
-                )
-                for result in results
-            ],
-            status="success",
-            answer_available=True,
-        )
+        return _search_response(results)

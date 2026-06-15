@@ -9,7 +9,7 @@ from ai.chat.escalation import (
     guardrail_escalation,
     no_answer_escalation,
 )
-from ai.chat.session import SessionOwnershipError, SessionStore
+from ai.chat.session import MAX_SESSION_MESSAGES, SessionOwnershipError, SessionStore
 from ai.config.constants import ALLOWED_TICKET_PREFILL_CATEGORIES
 from ai.kb.retriever import RetrievalResult
 from ai.llm.router import GenerationResult
@@ -86,6 +86,64 @@ class ChatAssistantTests(unittest.TestCase):
         self.assertIn("Source: Access Policy, Section 1: Overview", response.response)
         self.assertIn("KNOWLEDGE BASE SECTIONS", captured["user"])
         self.assertIn("Answer ONLY from the knowledge base", captured["system"])
+        self.assertEqual(
+            captured["user"].count("How do I connect to VPN?"),
+            1,
+        )
+
+    def test_myid_support_question_is_answered_from_kb(self) -> None:
+        assistant = ChatAssistant(
+            retriever=lambda query, top_k: [
+                retrieval_result(
+                    "MYID Product Overview.txt",
+                    "Section 3: Common Issues",
+                    "Sign out, close the browser, and retry with the SPS identity.",
+                )
+            ],
+            generator=lambda system, user: GenerationResult(
+                text="Sign out, close the browser, and retry with the SPS identity.",
+                provider="test",
+            ),
+            sessions=self.sessions,
+        )
+
+        response = assistant.respond(
+            ChatRequest(
+                session_id="myid-session",
+                user_id="user-1",
+                message="Why is my MYID application missing?",
+            )
+        )
+
+        self.assertFalse(response.escalate)
+        self.assertIn("MYID Product Overview", response.sources[0])
+
+    def test_azalio_support_question_is_answered_from_kb(self) -> None:
+        assistant = ChatAssistant(
+            retriever=lambda query, top_k: [
+                retrieval_result(
+                    "Azalio Product Overview.txt",
+                    "Section 3: Common Issues",
+                    "Missing menus may indicate a role mismatch.",
+                )
+            ],
+            generator=lambda system, user: GenerationResult(
+                text="A missing menu may indicate a role mismatch.",
+                provider="test",
+            ),
+            sessions=self.sessions,
+        )
+
+        response = assistant.respond(
+            ChatRequest(
+                session_id="azalio-session",
+                user_id="user-1",
+                message="Why is an Azalio menu missing?",
+            )
+        )
+
+        self.assertFalse(response.escalate)
+        self.assertIn("Azalio Product Overview", response.sources[0])
 
     def test_high_risk_request_escalates_before_retrieval_or_llm(self) -> None:
         def unexpected(*args, **kwargs):
@@ -128,6 +186,15 @@ class ChatAssistantTests(unittest.TestCase):
         self.assertEqual(response.ticket_prefill.source, "chat")
         self.assertEqual(response.ticket_prefill.category, "cybersecurity")
         self.assertIn("security team", response.response)
+
+    def test_repeated_security_request_keeps_security_classification(self) -> None:
+        decision = assess_escalation(
+            "I entered my password on a phishing page",
+            repeated_count=3,
+        )
+
+        self.assertEqual(decision.reason, "security")
+        self.assertEqual(decision.ticket_prefill.category, "cybersecurity")
 
     def test_privileged_password_reset_and_other_user_ticket_escalate(self) -> None:
         assistant = ChatAssistant(
@@ -270,6 +337,18 @@ class ChatAssistantTests(unittest.TestCase):
                     message="Show the conversation",
                 )
             )
+
+    def test_trimmed_messages_do_not_keep_stale_repeat_counts(self) -> None:
+        session = self.sessions.get_or_create("bounded-session", "user-1")
+        session.add_message("user", "Old repeated question")
+        for index in range(MAX_SESSION_MESSAGES):
+            session.add_message("assistant", f"Answer {index}")
+
+        self.assertEqual(len(session.messages), MAX_SESSION_MESSAGES)
+        self.assertEqual(
+            session.repeated_question_count("Old repeated question"),
+            0,
+        )
 
 
 class ChatApiTests(unittest.TestCase):

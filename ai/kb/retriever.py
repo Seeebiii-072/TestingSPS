@@ -1,7 +1,18 @@
+import logging
 from dataclasses import dataclass
 
 from ai.config.settings import get_settings
 from ai.kb.vector_store import VectorStore, get_vector_store
+
+
+logger = logging.getLogger(__name__)
+REQUIRED_METADATA_FIELDS = (
+    "document_name",
+    "section",
+    "chunk_id",
+    "source_path",
+    "created_at",
+)
 
 
 @dataclass(frozen=True)
@@ -35,6 +46,15 @@ def search(
         if score < settings.kb_min_similarity_score:
             continue
         metadata = result.metadata
+        missing_fields = [
+            field for field in REQUIRED_METADATA_FIELDS if field not in metadata
+        ]
+        if missing_fields:
+            logger.warning(
+                "Skipping KB result with missing metadata fields: %s",
+                ", ".join(missing_fields),
+            )
+            continue
         relevant.append(
             RetrievalResult(
                 content=result.content,

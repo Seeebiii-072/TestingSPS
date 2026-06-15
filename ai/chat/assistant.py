@@ -54,7 +54,10 @@ def _build_user_prompt(
     session: ChatSession,
     results: list[RetrievalResult],
 ) -> str:
-    context = session.short_context() or "No previous conversation."
+    context = (
+        session.short_context(exclude_latest_user=True)
+        or "No previous conversation."
+    )
     kb_context = "\n\n".join(
         f"Source: {_source_label(result)}\n{result.content}" for result in results
     )

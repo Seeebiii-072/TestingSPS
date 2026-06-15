@@ -18,6 +18,7 @@ class TextChunk:
     source_path: str
     created_at: str
     index: int
+    document_hash: str
 
     def metadata(self) -> dict[str, str | int]:
         return {
@@ -27,6 +28,7 @@ class TextChunk:
             "source_path": self.source_path,
             "created_at": self.created_at,
             "chunk_index": self.index,
+            "document_hash": self.document_hash,
         }
 
 
@@ -92,6 +94,12 @@ def chunk_text(
         timestamp = timestamp.astimezone(timezone.utc).isoformat()
 
     chunks: list[TextChunk] = []
+    document_hash = hashlib.sha256(
+        (
+            f"chunk_size={resolved_chunk_size}|overlap={resolved_overlap}|"
+            f"{text}"
+        ).encode("utf-8")
+    ).hexdigest()
     for section, section_text in _split_sections(text):
         for content in _window_text(section_text, resolved_chunk_size, resolved_overlap):
             index = len(chunks)
@@ -107,6 +115,7 @@ def chunk_text(
                     source_path=source_path,
                     created_at=timestamp,
                     index=index,
+                    document_hash=document_hash,
                 )
             )
     return chunks

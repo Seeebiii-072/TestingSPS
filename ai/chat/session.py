@@ -35,19 +35,27 @@ class ChatSession:
     def add_message(self, role: str, content: str) -> None:
         now = datetime.now(timezone.utc)
         self.messages.append(ChatMessage(role=role, content=content, created_at=now))
-        if len(self.messages) > MAX_SESSION_MESSAGES:
-            self.messages = self.messages[-MAX_SESSION_MESSAGES:]
         if role == "user":
             self.question_counts[normalize_question(content)] += 1
+        while len(self.messages) > MAX_SESSION_MESSAGES:
+            removed = self.messages.pop(0)
+            if removed.role == "user":
+                normalized = normalize_question(removed.content)
+                self.question_counts[normalized] -= 1
+                if self.question_counts[normalized] <= 0:
+                    del self.question_counts[normalized]
         self.last_activity = now
 
     def repeated_question_count(self, message: str) -> int:
         return self.question_counts[normalize_question(message)]
 
-    def short_context(self) -> str:
+    def short_context(self, *, exclude_latest_user: bool = False) -> str:
+        messages = self.messages
+        if exclude_latest_user and messages and messages[-1].role == "user":
+            messages = messages[:-1]
         return "\n".join(
             f"{message.role.title()}: {message.content}"
-            for message in self.messages[-CONTEXT_MESSAGE_LIMIT:]
+            for message in messages[-CONTEXT_MESSAGE_LIMIT:]
         )
 
     def is_expired(self) -> bool:
