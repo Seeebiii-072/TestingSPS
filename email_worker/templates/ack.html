@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Acknowledgment</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f6f9; font-family: 'Segoe UI', Arial, Helvetica, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f9; padding:20px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color:#0055a5; padding:30px 40px; text-align:center;">
+                            <h1 style="color:#ffffff; margin:0; font-size:24px; font-weight:600;">SPS SecureDesk AI</h1>
+                            <p style="color:#d4e4f7; margin:5px 0 0 0; font-size:14px;">IT Helpdesk</p>
+                        </td>
+                    </tr>
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding:40px;">
+                            <h2 style="color:#1a1a2e; font-size:20px; margin:0 0 10px 0;">Your request has been received</h2>
+                            <p style="color:#555; font-size:15px; line-height:1.6; margin:0 0 20px 0;">
+                                Dear {{ requester_name }},
+                            </p>
+                            <p style="color:#555; font-size:15px; line-height:1.6; margin:0 0 20px 0;">
+                                Thank you for contacting SPS SecureDesk AI. Your request has been received and a ticket has been created.
+                            </p>
+                            <!-- Ticket Summary -->
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc; border-radius:6px; border:1px solid #e2e8f0; margin-bottom:25px;">
+                                <tr>
+                                    <td style="padding:20px;">
+                                        <h3 style="color:#0055a5; font-size:16px; margin:0 0 15px 0;">Ticket Summary</h3>
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td style="color:#888; font-size:13px; padding:4px 0; width:120px;">Ticket ID:</td>
+                                                <td style="color:#1a1a2e; font-size:14px; font-weight:600; padding:4px 0;">{{ ticket_id }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="color:#888; font-size:13px; padding:4px 0;">Subject:</td>
+                                                <td style="color:#1a1a2e; font-size:14px; padding:4px 0;">{{ subject }}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            <!-- CTA Button -->
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{ portal_url }}/tickets/{{ ticket_id }}" style="display:inline-block; background-color:#0055a5; color:#ffffff; text-decoration:none; font-size:16px; font-weight:600; padding:14px 32px; border-radius:6px; margin:10px 0 20px 0;">View Ticket</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="color:#555; font-size:15px; line-height:1.6; margin:0 0 5px 0;">
+                                A support agent will review your request shortly.
+                            </p>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color:#f4f6f9; padding:20px 40px; text-align:center; border-top:1px solid #e2e8f0;">
+                            <p style="color:#999; font-size:12px; margin:0 0 5px 0;">&copy; {{ current_year }} SPS SecureDesk AI. All rights reserved.</p>
+                            <p style="color:#999; font-size:12px; margin:0;">This is an automated message. Please do not reply directly.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

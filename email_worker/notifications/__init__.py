@@ -1,0 +1,1 @@
+"""Backend event listener for outbound email notifications."""

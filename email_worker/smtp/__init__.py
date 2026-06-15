@@ -1,0 +1,1 @@
+"""SMTP outbound email sending module."""
