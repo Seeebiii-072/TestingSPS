@@ -1,11 +1,6 @@
-export const requestCategories = [
-  'Cloud',
-  'Cybersecurity',
-  'Identity and Access',
-  'DevOps',
-  'Internship/HR',
-  'General IT',
-];
+import { CATEGORIES } from '../../config/constants.js';
+
+export const requestCategories = CATEGORIES;
 
 export default function CategorySelect({ id = 'request-category', onChange, value }) {
   return (
@@ -14,8 +9,8 @@ export default function CategorySelect({ id = 'request-category', onChange, valu
       <select id={id} name="category" required value={value} onChange={onChange}>
         <option value="">Select the best category</option>
         {requestCategories.map((category) => (
-          <option key={category} value={category}>
-            {category}
+          <option key={category.value} value={category.value}>
+            {category.label}
           </option>
         ))}
       </select>

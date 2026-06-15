@@ -1,22 +1,30 @@
 import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
-import { mockUsers } from '../../data/mockUsers.js';
+
+const roles = [
+  { id: 'ROLE-01', name: 'Intern', value: 'intern', access: 'Requester self-service' },
+  { id: 'ROLE-02', name: 'Employee', value: 'employee', access: 'Requester self-service' },
+  { id: 'ROLE-03', name: 'Agent', value: 'agent', access: 'Ticket queue and updates' },
+  { id: 'ROLE-04', name: 'Security Admin', value: 'security_admin', access: 'Approvals and security review' },
+  { id: 'ROLE-05', name: 'Manager', value: 'manager', access: 'Reports and approvals' },
+  { id: 'ROLE-06', name: 'Administrator', value: 'administrator', access: 'Full backend access' },
+];
 
 export default function Users() {
   return (
     <section className="page users-admin-page">
       <div className="page-heading">
-        <div><p className="eyebrow">System administration</p><h1>Users</h1><p>Review mock users, roles, departments, and account status.</p></div>
+        <div><p className="eyebrow">System administration</p><h1>Users</h1><p>Review backend-supported roles and access levels.</p></div>
         <Button disabled>Add User</Button>
       </div>
-      <div className="future-integration-note"><span aria-hidden="true">API</span><div><strong>Future backend integration</strong><p>User provisioning and role changes will require secured identity APIs.</p></div></div>
-      <Card title="User Management" subtitle="Static user directory for frontend review." actions={<Badge tone="blue">{mockUsers.length} users</Badge>}>
+      <div className="future-integration-note"><span aria-hidden="true">API</span><div><strong>User management API pending</strong><p>The backend currently supports register/login, but not administrative user listing or provisioning.</p></div></div>
+      <Card title="Role Model" subtitle="Backend roles available for authentication and route guards." actions={<Badge tone="blue">{roles.length} roles</Badge>}>
         <div className="admin-management-table-wrap">
           <table className="admin-management-table">
-            <caption className="visually-hidden">Mock user management records</caption>
-            <thead><tr><th scope="col">User</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Department</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
-            <tbody>{mockUsers.map((user) => <tr key={user.id}><td><strong>{user.name}</strong></td><td>{user.email}</td><td>{user.role.replaceAll('_', ' ')}</td><td>{user.department}</td><td><Badge tone="green">{user.status}</Badge></td><td><Button variant="outline" disabled>Manage</Button></td></tr>)}</tbody>
+            <caption className="visually-hidden">Backend role model records</caption>
+            <thead><tr><th scope="col">Role</th><th scope="col">Value</th><th scope="col">Access</th><th scope="col">Action</th></tr></thead>
+            <tbody>{roles.map((role) => <tr key={role.id}><td><strong>{role.name}</strong></td><td>{role.value}</td><td>{role.access}</td><td><Button variant="outline" disabled>Manage</Button></td></tr>)}</tbody>
           </table>
         </div>
       </Card>

@@ -52,7 +52,7 @@ export default function Sidebar({
           <span className="status-dot" />
           <div className="sidebar__status-copy">
             <strong>All systems operational</strong>
-            <span>Mock environment</span>
+            <span>Development environment</span>
           </div>
         </div>
         <button

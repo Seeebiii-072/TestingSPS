@@ -3,12 +3,12 @@ import Badge from '../common/Badge';
 import Card from '../common/Card';
 
 const statusTones = {
-  New: 'blue',
-  'In Progress': 'blue',
-  'Waiting Approval': 'amber',
-  'Waiting User': 'amber',
-  Resolved: 'green',
-  Closed: 'gray',
+  open: 'blue',
+  in_progress: 'blue',
+  waiting_approval: 'amber',
+  waiting_user: 'amber',
+  resolved: 'green',
+  closed: 'gray',
 };
 
 function formatUpdatedAt(value) {
@@ -53,7 +53,7 @@ export default function RecentTickets({ tickets }) {
             {recentTickets.map((ticket) => (
               <tr key={ticket.id}>
                 <td>
-                  <Link to={`/agent/tickets/${ticket.id}`}>{ticket.id}</Link>
+                  <Link to={`/agent/tickets/${ticket.id}`}>{ticket.ticketNumber || ticket.id}</Link>
                 </td>
                 <td>
                   <strong>{ticket.subject}</strong>
@@ -63,7 +63,7 @@ export default function RecentTickets({ tickets }) {
                   <Badge value={ticket.source} />
                 </td>
                 <td>
-                  <Badge tone={statusTones[ticket.status]}>{ticket.status}</Badge>
+                  <Badge tone={statusTones[ticket.status]}>{ticket.statusLabel || ticket.status}</Badge>
                 </td>
                 <td>
                   <Badge value={ticket.priority.toLowerCase()} />

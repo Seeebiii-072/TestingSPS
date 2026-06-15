@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import AppShell from '../components/common/AppShell';
 import Login from '../pages/auth/Login';
+import Register from '../pages/auth/Register';
 import RequesterDashboard from '../pages/requester/RequesterDashboard';
 import SubmitRequest from '../pages/requester/SubmitRequest';
 import MyTickets from '../pages/requester/MyTickets';
@@ -25,6 +26,7 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/" element={<Navigate to="/requester" replace />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
       <Route element={<AppShell />}>
         <Route path="/requester" element={<RequesterDashboard />} />

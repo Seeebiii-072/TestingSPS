@@ -4,7 +4,7 @@ import AsyncState from '../../components/common/AsyncState';
 import Badge from '../../components/common/Badge';
 import Card from '../../components/common/Card';
 import StatCard from '../../components/common/StatCard';
-import { getReports } from '../../services/reportService.js';
+import { getSummary } from '../../services/reportService.js';
 
 export default function ManagerDashboard() {
   const [reports, setReports] = useState(null);
@@ -13,11 +13,11 @@ export default function ManagerDashboard() {
 
   useEffect(() => {
     setError('');
-    getReports().then(setReports).catch(() => setError('The mock management data could not be loaded.'));
+    getSummary().then(setReports).catch(() => setError('The management data could not be loaded from the backend.'));
   }, [reloadKey]);
 
   if (error) return <AsyncState type="error" title="Management dashboard unavailable" description={error} onAction={() => setReloadKey((value) => value + 1)} />;
-  if (!reports) return <AsyncState title="Loading management dashboard" description="Preparing mock service-management metrics." />;
+  if (!reports) return <AsyncState title="Loading management dashboard" description="Preparing service-management metrics." />;
 
   return (
     <section className="page manager-dashboard-page">
@@ -27,7 +27,7 @@ export default function ManagerDashboard() {
           <h1>Manager Dashboard</h1>
           <p>Monitor service performance, workload, risk, and operational priorities.</p>
         </div>
-        <Badge tone="green">Mock data current</Badge>
+        <Badge tone="green">Live data current</Badge>
       </div>
 
       <div className="manager-stat-grid">

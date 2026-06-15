@@ -23,7 +23,7 @@ export default function TicketTable({ onSelectTicket, tickets }) {
     return (
       <div className="ticket-table-empty">
         <strong>No tickets match these filters.</strong>
-        <span>Adjust the queue filters to see more mock tickets.</span>
+        <span>Adjust the queue filters to see more tickets.</span>
       </div>
     );
   }
@@ -66,7 +66,7 @@ export default function TicketTable({ onSelectTicket, tickets }) {
                 }}
               >
                 <td>
-                  <strong>{ticket.id}</strong>
+                  <strong>{ticket.ticketNumber || ticket.id}</strong>
                 </td>
                 <td>
                   <strong>{ticket.subject}</strong>
@@ -88,7 +88,7 @@ export default function TicketTable({ onSelectTicket, tickets }) {
                 </td>
                 <td>{ticket.assignedTeam}</td>
                 <td>
-                  <span className={ticket.sla.includes('minutes') ? 'ticket-sla-at-risk' : ''}>
+                  <span className={ticket.sla.includes('minutes') || ticket.sla.includes('breached') ? 'ticket-sla-at-risk' : ''}>
                     {ticket.sla}
                   </span>
                 </td>

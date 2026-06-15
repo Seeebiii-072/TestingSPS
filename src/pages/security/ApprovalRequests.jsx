@@ -1,24 +1,47 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import AsyncState from '../../components/common/AsyncState';
 import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
-import { mockTickets } from '../../data/mockTickets.js';
-
-const approvalTicketIds = ['SPS-2026-002', 'SPS-2026-012'];
-
-const riskReasons = {
-  'SPS-2026-002':
-    'Privileged analytics access can expose sensitive security telemetry and incident data.',
-  'SPS-2026-012':
-    'Service account certificate renewal affects a non-human identity and production authentication.',
-};
+import { approveTicket, getTickets, updateTicket } from '../../services/ticketService.js';
 
 export default function ApprovalRequests() {
-  const approvals = mockTickets.filter((ticket) => approvalTicketIds.includes(ticket.id));
-  const [decisions, setDecisions] = useState({});
+  const [approvals, setApprovals] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const setDecision = (ticketId, decision) => {
-    setDecisions((current) => ({ ...current, [ticketId]: decision }));
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    setError('');
+
+    getTickets({ status: 'waiting_approval' }).then((tickets) => {
+      if (!isMounted) return;
+      setApprovals(tickets);
+      setIsLoading(false);
+    }).catch(() => {
+      if (!isMounted) return;
+      setError('Approval requests could not be loaded from the backend.');
+      setIsLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [reloadKey]);
+
+  const decide = async (ticketId, decision) => {
+    await approveTicket(ticketId, decision, `${decision} by security reviewer`);
+    setReloadKey((value) => value + 1);
   };
+
+  const requestMoreInfo = async (ticketId) => {
+    await updateTicket(ticketId, { status: 'waiting_user' });
+    setReloadKey((value) => value + 1);
+  };
+
+  if (error) return <AsyncState type="error" title="Approvals unavailable" description={error} onAction={() => setReloadKey((value) => value + 1)} />;
+  if (isLoading) return <AsyncState title="Loading approval requests" description="Fetching high-risk tickets from the backend." />;
 
   return (
     <section className="page approval-requests-page">
@@ -40,65 +63,57 @@ export default function ApprovalRequests() {
       </div>
 
       <div className="approval-card-list">
-        {approvals.map((ticket) => {
-          const decision = decisions[ticket.id];
-          return (
-            <article className="approval-card" key={ticket.id}>
-              <div className="approval-card__header">
-                <div>
-                  <span>{ticket.id}</span>
-                  <h2>{ticket.subject}</h2>
-                </div>
-                <Badge tone={decision ? 'blue' : 'amber'}>
-                  {decision || 'Waiting Approval'}
-                </Badge>
+        {approvals.map((ticket) => (
+          <article className="approval-card" key={ticket.id}>
+            <div className="approval-card__header">
+              <div>
+                <span>{ticket.ticketNumber || ticket.id}</span>
+                <h2>{ticket.subject}</h2>
               </div>
+              <Badge tone="amber">{ticket.statusLabel || ticket.status}</Badge>
+            </div>
 
-              <dl className="approval-card__details">
-                <div>
-                  <dt>Requester</dt>
-                  <dd>
-                    <strong>{ticket.requesterName}</strong>
-                    <span>{ticket.requesterEmail}</span>
-                  </dd>
-                </div>
-                <div>
-                  <dt>Requested access</dt>
-                  <dd>{ticket.subject}</dd>
-                </div>
-                <div>
-                  <dt>Risk reason</dt>
-                  <dd>{riskReasons[ticket.id]}</dd>
-                </div>
-                <div>
-                  <dt>AI classification note</dt>
-                  <dd>{ticket.aiSummary}</dd>
-                </div>
-              </dl>
-
-              <div className="approval-card__footer">
-                <div className="approval-card__risk">
-                  <Badge tone="red">{ticket.risk}</Badge>
-                  <Badge value={ticket.source} />
-                </div>
-                <div className="approval-card__actions">
-                  <Button variant="success" onClick={() => setDecision(ticket.id, 'Approved')}>
-                    Approve
-                  </Button>
-                  <Button variant="danger" onClick={() => setDecision(ticket.id, 'Rejected')}>
-                    Reject
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setDecision(ticket.id, 'More Info Requested')}
-                  >
-                    Request More Info
-                  </Button>
-                </div>
+            <dl className="approval-card__details">
+              <div>
+                <dt>Requester</dt>
+                <dd>
+                  <strong>{ticket.requesterName}</strong>
+                  <span>{ticket.requesterEmail}</span>
+                </dd>
               </div>
-            </article>
-          );
-        })}
+              <div>
+                <dt>Requested access</dt>
+                <dd>{ticket.subject}</dd>
+              </div>
+              <div>
+                <dt>Risk reason</dt>
+                <dd>High-risk identity/access ticket requires human approval before work can continue.</dd>
+              </div>
+              <div>
+                <dt>AI classification note</dt>
+                <dd>{ticket.aiSummary}</dd>
+              </div>
+            </dl>
+
+            <div className="approval-card__footer">
+              <div className="approval-card__risk">
+                <Badge tone="red">{ticket.risk}</Badge>
+                <Badge value={ticket.source} />
+              </div>
+              <div className="approval-card__actions">
+                <Button variant="success" onClick={() => decide(ticket.id, 'approved')}>
+                  Approve
+                </Button>
+                <Button variant="danger" onClick={() => decide(ticket.id, 'rejected')}>
+                  Reject
+                </Button>
+                <Button variant="outline" onClick={() => requestMoreInfo(ticket.id)}>
+                  Request More Info
+                </Button>
+              </div>
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );

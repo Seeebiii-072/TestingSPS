@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import Badge from '../../components/common/Badge';
 import StatCard from '../../components/common/StatCard';
-import { mockUsers } from '../../data/mockUsers.js';
 
 const adminAreas = [
   { code: 'US', title: 'Users', description: 'Manage roles and access.', to: '/admin/users' },
@@ -20,11 +19,11 @@ export default function AdminDashboard() {
           <h1>Admin Dashboard</h1>
           <p>Configure users, knowledge, routing, service targets, and communication channels.</p>
         </div>
-        <Badge tone="blue">Frontend configuration preview</Badge>
+        <Badge tone="blue">Configuration preview</Badge>
       </div>
 
       <div className="admin-stat-grid">
-        <StatCard title="Active users" value={mockUsers.length} icon="US" trend="Mock" description="Across five role types" />
+        <StatCard title="Supported roles" value="6" icon="US" trend="Ready" description="Backend role model configured" />
         <StatCard title="Knowledge articles" value="24" icon="KB" trend="+3" trendDirection="up" description="Approved helpdesk guidance" />
         <StatCard title="Ticket categories" value="6" icon="CT" trend="Configured" description="Routing categories available" />
         <StatCard title="SLA policies" value="4" icon="SL" trend="Active" description="Priority-based targets" />
@@ -41,7 +40,7 @@ export default function AdminDashboard() {
 
       <div className="future-integration-note">
         <span aria-hidden="true">API</span>
-        <div><strong>Future backend integration</strong><p>Administration changes are disabled until secured backend APIs and authorization controls are connected.</p></div>
+        <div><strong>Admin API integration pending</strong><p>Administration changes are disabled until secured backend admin APIs are added.</p></div>
       </div>
     </section>
   );

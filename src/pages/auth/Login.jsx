@@ -1,7 +1,39 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import Brand from '../../components/common/Brand';
+import authService from '../../services/authService.js';
+import { ROLES } from '../../config/constants.js';
+
+const roleRedirects = {
+  [ROLES.INTERN]: '/requester',
+  [ROLES.EMPLOYEE]: '/requester',
+  [ROLES.AGENT]: '/agent',
+  [ROLES.SECURITY_ADMIN]: '/security',
+  [ROLES.MANAGER]: '/manager',
+  [ROLES.ADMINISTRATOR]: '/admin',
+};
 
 export default function Login() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const submitLogin = async (event) => {
+    event.preventDefault();
+    setError('');
+    setIsSubmitting(true);
+    try {
+      const user = await authService.login(email, password);
+      navigate(roleRedirects[user.role] || '/requester', { replace: true });
+    } catch {
+      setError('Login failed. Please check your email and password.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <main className="login-page">
       <section className="login-panel">
@@ -14,21 +46,34 @@ export default function Login() {
             and operational support.
           </p>
         </div>
-        <form className="login-form">
+        <form className="login-form" onSubmit={submitLogin}>
           <label>
             Work email
-            <input type="email" placeholder="name@company.com" disabled />
+            <input
+              type="email"
+              placeholder="name@company.com"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
           </label>
           <label>
             Password
-            <input type="password" placeholder="********" disabled />
+            <input
+              type="password"
+              placeholder="********"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
           </label>
-          <Link className="primary-button" to="/requester">
-            Enter mock workspace
-          </Link>
+          {error && <p className="form-error" role="alert">{error}</p>}
+          <button className="primary-button" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Signing in...' : 'Sign in'}
+          </button>
         </form>
         <p className="login-panel__note">
-          Authentication is intentionally disabled in this frontend-only phase.
+          New to SecureDesk? <Link to="/register">Create an account</Link>.
         </p>
       </section>
       <aside className="login-visual">

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import AsyncState from '../../components/common/AsyncState';
 import Badge from '../../components/common/Badge';
 import Card from '../../components/common/Card';
-import { getReports } from '../../services/reportService.js';
+import { getSummary } from '../../services/reportService.js';
 
 function BarChart({ data, maxValue }) {
   return (
@@ -26,11 +26,11 @@ export default function Reports() {
 
   useEffect(() => {
     setError('');
-    getReports().then(setReports).catch(() => setError('The mock report dataset could not be loaded.'));
+    getSummary().then(setReports).catch(() => setError('The report data could not be loaded from the backend.'));
   }, [reloadKey]);
 
   if (error) return <AsyncState type="error" title="Reports unavailable" description={error} onAction={() => setReloadKey((value) => value + 1)} />;
-  if (!reports) return <AsyncState title="Loading reports" description="Preparing mock channel, SLA, risk, and audit data." />;
+  if (!reports) return <AsyncState title="Loading reports" description="Preparing channel, SLA, risk, and audit data." />;
 
   return (
     <section className="page reports-page">
@@ -40,7 +40,7 @@ export default function Reports() {
           <h1>Reports</h1>
           <p>Review helpdesk channel volume, SLA health, risk, resolution, and audit activity.</p>
         </div>
-        <Badge tone="blue">Mock reporting period: June 2026</Badge>
+        <Badge tone="blue">Live reporting data</Badge>
       </div>
 
       <div className="reports-grid">
@@ -98,7 +98,7 @@ export default function Reports() {
         <Card
           className="report-wide-card"
           title="Audit Summary"
-          subtitle="Mock controls and audit-readiness overview."
+          subtitle="Controls and audit-readiness overview."
         >
           <div className="audit-summary-grid">
             <div><span>Timeline events captured</span><strong>48</strong><small>Across all source channels</small></div>

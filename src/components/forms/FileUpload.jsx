@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import Button from '../common/Button';
-import { uploadMockFile } from '../../services/uploadService.js';
+import { uploadFile } from '../../services/uploadService.js';
 
 function formatBytes(bytes) {
   if (!bytes) return '0 KB';
@@ -12,6 +12,7 @@ export default function FileUpload({
   compact = false,
   label = 'Attachment upload',
   onUploaded,
+  ticketId,
 }) {
   const inputRef = useRef(null);
   const [files, setFiles] = useState([]);
@@ -22,11 +23,22 @@ export default function FileUpload({
     if (!selectedFiles.length) return;
 
     setIsUploading(true);
-    const uploads = await Promise.all(selectedFiles.map((file) => uploadMockFile(file)));
-    setFiles((current) => [...current, ...uploads]);
-    uploads.forEach((attachment) => onUploaded?.(attachment));
-    setIsUploading(false);
-    event.target.value = '';
+    try {
+      const uploads = ticketId
+        ? await Promise.all(selectedFiles.map((file) => uploadFile(ticketId, file)))
+        : selectedFiles.map((file) => ({
+            id: `${file.name}-${file.lastModified}`,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            file,
+          }));
+      setFiles((current) => [...current, ...uploads]);
+      uploads.forEach((attachment) => onUploaded?.(attachment));
+      event.target.value = '';
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -44,7 +56,7 @@ export default function FileUpload({
         </span>
         <div>
           <strong>{label}</strong>
-          <p>Files are stored in the local mock session only.</p>
+          <p>{ticketId ? 'Files upload directly to this ticket.' : 'Files upload after the ticket is created.'}</p>
         </div>
         <Button
           variant="outline"

@@ -3,14 +3,19 @@ import Button from '../common/Button';
 import CategorySelect from './CategorySelect';
 import FileUpload from './FileUpload';
 
-const priorityOptions = ['Low', 'Medium', 'High', 'Critical'];
+const priorityOptions = [
+  ['low', 'Low'],
+  ['medium', 'Medium'],
+  ['high', 'High'],
+  ['critical', 'Critical'],
+];
 
 const initialForm = {
   subject: '',
   description: '',
   category: '',
-  priority: 'Medium',
-  requesterEmail: 'amina.qureshi@northstar.example',
+  priority: 'medium',
+  requesterEmail: '',
 };
 
 export default function RequestForm({ onSubmit }) {
@@ -26,13 +31,15 @@ export default function RequestForm({ onSubmit }) {
   const submitForm = async (event) => {
     event.preventDefault();
     setIsSubmitting(true);
-    await onSubmit({
+    try {
+      await onSubmit({
       ...form,
-      requesterName: 'Amina Qureshi',
       aiSummary: form.description,
       attachments,
-    });
-    setIsSubmitting(false);
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -66,9 +73,9 @@ export default function RequestForm({ onSubmit }) {
         <label className="request-field">
           <span>Priority hint</span>
           <select name="priority" value={form.priority} onChange={updateField}>
-            {priorityOptions.map((priority) => (
-              <option key={priority} value={priority}>
-                {priority}
+            {priorityOptions.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
               </option>
             ))}
           </select>
@@ -96,7 +103,7 @@ export default function RequestForm({ onSubmit }) {
       </div>
 
       <div className="request-form__footer">
-        <p>Submitting creates a mock portal-form ticket in the local session.</p>
+        <p>Submitting creates a real portal-form ticket through the backend API.</p>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Submitting request...' : 'Submit Request'}
         </Button>

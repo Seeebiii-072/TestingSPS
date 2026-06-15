@@ -23,7 +23,7 @@ export default function TicketSourceChart({ sources }) {
     <section className="channel-summary-grid" aria-label="Ticket channel summary">
       {sources.map((source) => {
         const meta = sourceMeta[source.label];
-        const percentage = Math.round((source.value / total) * 100);
+        const percentage = total > 0 ? Math.round((source.value / total) * 100) : 0;
 
         return (
           <article className="channel-summary-card" key={source.label}>

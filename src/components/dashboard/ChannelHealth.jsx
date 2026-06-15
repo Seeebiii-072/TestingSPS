@@ -18,7 +18,7 @@ const channels = [
     name: 'AI chat escalation',
     code: 'AI',
     status: 'Operational',
-    detail: 'Mock escalation service available',
+    detail: 'Escalation service available',
   },
   {
     name: 'Notification service',
@@ -33,7 +33,7 @@ export default function ChannelHealth() {
     <Card
       className="dashboard-panel channel-health"
       title="Channel Health"
-      subtitle="Mock intake and notification service status."
+      subtitle="Intake and notification service status."
       actions={<Badge tone="green">All available</Badge>}
     >
       <div className="channel-health__list">

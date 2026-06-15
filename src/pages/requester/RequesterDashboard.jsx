@@ -6,9 +6,8 @@ import Card from '../../components/common/Card';
 import StatCard from '../../components/common/StatCard';
 import TicketPriorityBadge from '../../components/tickets/TicketPriorityBadge';
 import TicketStatusBadge from '../../components/tickets/TicketStatusBadge';
-import { filterTickets } from '../../services/ticketService.js';
-
-const requesterEmail = 'amina.qureshi@northstar.example';
+import { getTickets } from '../../services/ticketService.js';
+import authService from '../../services/authService.js';
 
 const quickActions = [
   {
@@ -40,22 +39,22 @@ export default function RequesterDashboard() {
   useEffect(() => {
     setError('');
     setIsLoading(true);
-    filterTickets({ requesterEmail })
+    getTickets()
       .then(setTickets)
-      .catch(() => setError('Your mock ticket summary could not be loaded.'))
+      .catch(() => setError('Your ticket summary could not be loaded from the backend.'))
       .finally(() => setIsLoading(false));
   }, [reloadKey]);
 
   if (error) return <AsyncState type="error" title="Requester dashboard unavailable" description={error} onAction={() => setReloadKey((value) => value + 1)} />;
-  if (isLoading) return <AsyncState title="Loading requester dashboard" description="Preparing your mock ticket summary." />;
+  if (isLoading) return <AsyncState title="Loading requester dashboard" description="Preparing your ticket summary." />;
 
   const openTickets = tickets.filter(
-    (ticket) => !['Resolved', 'Closed'].includes(ticket.status),
+    (ticket) => !['resolved', 'closed'].includes(ticket.status),
   );
   const resolvedTickets = tickets.filter((ticket) =>
-    ['Resolved', 'Closed'].includes(ticket.status),
+    ['resolved', 'closed'].includes(ticket.status),
   );
-  const waitingUser = tickets.filter((ticket) => ticket.status === 'Waiting User');
+  const waitingUser = tickets.filter((ticket) => ticket.status === 'waiting_user');
   const recentTickets = [...tickets]
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
     .slice(0, 3);
@@ -65,7 +64,7 @@ export default function RequesterDashboard() {
       <div className="page-heading">
         <div>
           <p className="eyebrow">Requester portal</p>
-          <h1>Welcome, Amina</h1>
+          <h1>Welcome, {authService.getCurrentUser()?.email || 'Requester'}</h1>
           <p>
             Submit requests, get AI-guided help, and track every support channel
             from one workspace.
@@ -130,7 +129,7 @@ export default function RequesterDashboard() {
               </span>
               <span className="requester-recent-list__content">
                 <strong>{ticket.subject}</strong>
-                <small>{ticket.id}</small>
+                <small>{ticket.ticketNumber || ticket.id}</small>
               </span>
               <span className="requester-recent-list__badges">
                 <TicketStatusBadge status={ticket.status} />

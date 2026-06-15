@@ -6,13 +6,7 @@ import Button from '../../components/common/Button';
 import FileUpload from '../../components/forms/FileUpload';
 import TicketPriorityBadge from '../../components/tickets/TicketPriorityBadge';
 import TicketStatusBadge from '../../components/tickets/TicketStatusBadge';
-import {
-  addTicketAttachment,
-  addTicketComment,
-  filterTickets,
-} from '../../services/ticketService.js';
-
-const requesterEmail = 'amina.qureshi@northstar.example';
+import { addEvent, getTickets } from '../../services/ticketService.js';
 
 function formatUpdatedAt(value) {
   return new Intl.DateTimeFormat('en-US', {
@@ -35,12 +29,12 @@ export default function MyTickets() {
     setError('');
     setIsLoading(true);
     try {
-      const results = await filterTickets({ requesterEmail });
+      const results = await getTickets();
       setTickets(
         [...results].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
       );
     } catch {
-      setError('Your mock tickets could not be loaded.');
+      setError('Your tickets could not be loaded from the backend.');
     } finally {
       setIsLoading(false);
     }
@@ -53,10 +47,11 @@ export default function MyTickets() {
   const addComment = async (ticket) => {
     if (!comment.trim()) return;
     try {
-      await addTicketComment(ticket.id, {
-        type: 'Portal comment received',
-        actor: ticket.requesterName,
-        message: comment.trim(),
+      await addEvent(ticket.id, {
+        event_type: 'agent_reply_portal',
+        content: comment.trim(),
+        is_public: true,
+        channel: 'portal',
       });
       setComment('');
       setNotice(`Comment added to ${ticket.id}.`);
@@ -68,8 +63,7 @@ export default function MyTickets() {
 
   const addAttachment = async (ticket, attachment) => {
     try {
-      await addTicketAttachment(ticket.id, attachment);
-      setNotice(`${attachment.name} uploaded to ${ticket.id}.`);
+      setNotice(`${attachment.name} uploaded to ${ticket.ticketNumber || ticket.id}.`);
       await loadTickets();
     } catch {
       setError(`The file could not be uploaded to ${ticket.id}.`);
@@ -99,9 +93,9 @@ export default function MyTickets() {
       {error ? (
         <AsyncState type="error" title="My Tickets unavailable" description={error} onAction={loadTickets} />
       ) : isLoading ? (
-        <AsyncState title="Loading My Tickets" description="Collecting your requests from every mock source channel." />
+        <AsyncState title="Loading My Tickets" description="Collecting your requests from the backend API." />
       ) : tickets.length === 0 ? (
-        <AsyncState type="empty" title="No tickets yet" description="Submit a request or start an AI chat to create your first mock ticket." />
+        <AsyncState type="empty" title="No tickets yet" description="Submit a request or start an AI chat to create your first ticket." />
       ) : <div className="requester-ticket-list">
         {tickets.map((ticket) => {
           const isActive = activeTicketId === ticket.id;
@@ -110,7 +104,7 @@ export default function MyTickets() {
               <div className="requester-ticket__main">
                 <div className="requester-ticket__heading">
                   <div>
-                    <span>{ticket.id}</span>
+                    <span>{ticket.ticketNumber || ticket.id}</span>
                     <h2>{ticket.subject}</h2>
                   </div>
                   <div className="requester-ticket__badges">
@@ -162,6 +156,7 @@ export default function MyTickets() {
                   <FileUpload
                     compact
                     label="Upload file"
+                    ticketId={ticket.id}
                     onUploaded={(attachment) => addAttachment(ticket, attachment)}
                   />
                 </div>

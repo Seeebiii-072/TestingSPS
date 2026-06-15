@@ -1,33 +1,44 @@
-import { currentMockUser } from '../data/mockUsers.js';
-import { mockApiResponse } from './api.js';
+import api from './api.js';
 
-let activeUser = currentMockUser;
+async function login(email, password) {
+  const response = await api.post('/auth/login', { email, password });
+  const { access_token, user } = response.data;
+  sessionStorage.setItem('token', access_token);
+  sessionStorage.setItem('user', JSON.stringify(user));
+  return user;
+}
 
-export function mockLogin(credentials = {}) {
-  activeUser = {
-    ...currentMockUser,
-    email: credentials.email || currentMockUser.email,
-  };
-
-  return mockApiResponse({
-    user: activeUser,
-    token: 'mock-securedesk-session-token',
+async function register(email, full_name, password, role) {
+  const response = await api.post('/auth/register', {
+    email,
+    full_name,
+    password,
+    role,
   });
+  return response.data;
 }
 
-export function mockLogout() {
-  activeUser = null;
-  return mockApiResponse({ success: true });
+function logout() {
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('user');
+  window.location.href = '/login';
 }
 
-export function getCurrentUser() {
-  return mockApiResponse(activeUser);
+function getCurrentUser() {
+  const user = sessionStorage.getItem('user');
+  return user ? JSON.parse(user) : null;
+}
+
+function isLoggedIn() {
+  return !!sessionStorage.getItem('token');
 }
 
 const authService = {
-  mockLogin,
-  mockLogout,
+  login,
+  register,
+  logout,
   getCurrentUser,
+  isLoggedIn,
 };
 
 export default authService;

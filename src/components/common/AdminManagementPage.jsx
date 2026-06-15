@@ -26,7 +26,7 @@ export default function AdminManagementPage({
         <div>
           <strong>Future backend integration</strong>
           <p>
-            This management screen currently uses static mock records. Create,
+            This management screen currently uses static configuration records. Create,
             update, and delete actions will connect to secured backend APIs later.
           </p>
         </div>
@@ -35,12 +35,12 @@ export default function AdminManagementPage({
       <Card
         className="admin-management-card"
         title={`${title} management`}
-        subtitle="Mock configuration records for frontend review."
-        actions={<Badge tone="blue">{rows.length} mock records</Badge>}
+        subtitle="Configuration records for frontend review."
+        actions={<Badge tone="blue">{rows.length} records</Badge>}
       >
         <div className="admin-management-table-wrap">
           <table className="admin-management-table">
-            <caption className="visually-hidden">{title} mock management records</caption>
+            <caption className="visually-hidden">{title} management records</caption>
             <thead>
               <tr>
                 {columns.map((column) => (

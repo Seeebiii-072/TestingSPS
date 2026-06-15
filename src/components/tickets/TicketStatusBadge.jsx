@@ -1,14 +1,15 @@
 import Badge from '../common/Badge';
 
 const statusTones = {
-  New: 'blue',
-  'In Progress': 'blue',
-  'Waiting Approval': 'amber',
-  'Waiting User': 'amber',
-  Resolved: 'green',
-  Closed: 'gray',
+  open: 'blue',
+  in_progress: 'blue',
+  waiting_approval: 'amber',
+  waiting_user: 'amber',
+  resolved: 'green',
+  closed: 'gray',
 };
 
 export default function TicketStatusBadge({ status }) {
-  return <Badge tone={statusTones[status] || 'gray'}>{status}</Badge>;
+  const label = String(status || '').replaceAll('_', ' ');
+  return <Badge tone={statusTones[status] || 'gray'}>{label}</Badge>;
 }

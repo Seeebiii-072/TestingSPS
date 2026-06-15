@@ -1,7 +1,7 @@
 import StatCard from '../common/StatCard';
 
 function isOpen(ticket) {
-  return !['Resolved', 'Closed'].includes(ticket.status);
+  return !['resolved', 'closed'].includes(ticket.status);
 }
 
 function isSlaAtRisk(ticket) {
@@ -30,7 +30,7 @@ export default function DashboardStats({ tickets }) {
     },
     {
       title: 'Waiting Approval',
-      value: tickets.filter((ticket) => ticket.status === 'Waiting Approval').length,
+      value: tickets.filter((ticket) => ticket.status === 'waiting_approval').length,
       icon: 'WA',
       trend: 'Review',
       trendDirection: 'warning',
@@ -48,7 +48,7 @@ export default function DashboardStats({ tickets }) {
       title: 'Resolved Today',
       value: tickets.filter(
         (ticket) =>
-          ['Resolved', 'Closed'].includes(ticket.status) &&
+          ['resolved', 'closed'].includes(ticket.status) &&
           ticket.updatedAt.startsWith('2026-06-09'),
       ).length,
       icon: 'RT',

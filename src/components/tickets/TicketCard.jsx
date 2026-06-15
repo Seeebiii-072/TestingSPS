@@ -17,7 +17,7 @@ export default function TicketCard({ onClick, ticket }) {
       onClick={() => onClick(ticket)}
     >
       <span className="ticket-card__heading">
-        <strong>{ticket.id}</strong>
+        <strong>{ticket.ticketNumber || ticket.id}</strong>
         <TicketStatusBadge status={ticket.status} />
       </span>
       <span className="ticket-card__subject">{ticket.subject}</span>

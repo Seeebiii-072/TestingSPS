@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import Button from '../common/Button';
 
 const statuses = [
-  'New',
-  'In Progress',
-  'Waiting Approval',
-  'Waiting User',
-  'Resolved',
-  'Closed',
+  ['open', 'Open'],
+  ['in_progress', 'In Progress'],
+  ['waiting_approval', 'Waiting Approval'],
+  ['waiting_user', 'Waiting User'],
+  ['resolved', 'Resolved'],
+  ['closed', 'Closed'],
 ];
 
 export default function TicketReplyBox({
@@ -87,9 +87,9 @@ export default function TicketReplyBox({
           <label>
             Update status
             <select value={status} onChange={(event) => setStatus(event.target.value)}>
-              {statuses.map((option) => (
-                <option key={option} value={option}>
-                  {option}
+              {statuses.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
                 </option>
               ))}
             </select>

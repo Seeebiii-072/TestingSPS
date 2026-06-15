@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ChatInput from '../../components/chat/ChatInput';
 import ChatMessage from '../../components/chat/ChatMessage';
 import ChatSuggestions from '../../components/chat/ChatSuggestions';
@@ -6,11 +6,8 @@ import CreateTicketFromChat from '../../components/chat/CreateTicketFromChat';
 import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
 import Card from '../../components/common/Card';
-import {
-  createMockTicketFromChat,
-  getInitialMessages,
-  sendMockMessage,
-} from '../../services/chatService.js';
+import { createTicketFromEscalation, getInitialMessages, sendMessage } from '../../services/chatService.js';
+import authService from '../../services/authService.js';
 
 const knowledgeTopics = [
   'VPN',
@@ -27,28 +24,11 @@ const initialTicketDraft = {
   subject: 'Helpdesk assistance requested from SecureDesk AI',
   summary:
     'The requester needs additional help after reviewing approved knowledge-base guidance.',
-  category: 'General IT',
-  priority: 'Medium',
-  risk: 'Normal',
+  category: 'general_it',
+  priority: 'medium',
+  risk: 'standard',
   source: 'chat',
 };
-
-const escalationTerms = [
-  'create ticket',
-  'report phishing',
-  'cannot resolve',
-  "can't resolve",
-  'human agent',
-  'speak to an agent',
-];
-
-function shouldShowEscalation(message, response) {
-  const normalized = message.toLowerCase();
-  return (
-    escalationTerms.some((term) => normalized.includes(term)) ||
-    response.content.includes('agent may need more details')
-  );
-}
 
 function createUserMessage(content) {
   return {
@@ -60,20 +40,63 @@ function createUserMessage(content) {
   };
 }
 
+function createAssistantMessage(response) {
+  const sources = Array.isArray(response.source)
+    ? response.source
+    : response.source
+      ? [response.source]
+      : [];
+
+  return {
+    id: `PAGE-AI-${Date.now()}`,
+    role: 'assistant',
+    type: 'message',
+    content: response.response || response.message || '',
+    citations: sources.map((source, index) => ({
+      id: `${source}-${index}`,
+      label: String(source),
+      source: String(source),
+    })),
+    createdAt: new Date().toISOString(),
+  };
+}
+
+function normalizeTicketPrefill(prefill, fallbackMessage) {
+  if (!prefill) {
+    return {
+      ...initialTicketDraft,
+      subject: `${fallbackMessage.slice(0, 68)}${fallbackMessage.length > 68 ? '...' : ''}`,
+      summary: fallbackMessage,
+    };
+  }
+
+  return {
+    ...initialTicketDraft,
+    ...prefill,
+    summary: prefill.summary || prefill.description || fallbackMessage,
+    category: prefill.category || 'general_it',
+    priority: prefill.priority || 'medium',
+    risk: prefill.risk_level || prefill.risk || 'standard',
+  };
+}
+
 export default function AIChat() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showEscalation, setShowEscalation] = useState(false);
   const [ticketDraft, setTicketDraft] = useState(initialTicketDraft);
   const [ticketConfirmation, setTicketConfirmation] = useState('');
+  const [error, setError] = useState('');
   const conversationRef = useRef(null);
+  const sessionId = useMemo(() => `chat-${crypto.randomUUID?.() || Date.now()}`, []);
+  const currentUser = authService.getCurrentUser();
 
   useEffect(() => {
     let isMounted = true;
 
     getInitialMessages().then((initialMessages) => {
       if (!isMounted) return;
-      setMessages(initialMessages.slice(0, 3));
+      setMessages(initialMessages);
       setIsLoading(false);
     });
 
@@ -93,39 +116,32 @@ export default function AIChat() {
       return;
     }
 
+    setError('');
     setMessages((current) => [...current, createUserMessage(content)]);
     setIsLoading(true);
 
-    const response = await sendMockMessage(content);
-    setMessages((current) => [...current, response]);
-    setIsLoading(false);
-
-    setTicketDraft((current) => ({
-      ...current,
-      subject: `${content.slice(0, 68)}${content.length > 68 ? '...' : ''}`,
-      summary: `SecureDesk AI reviewed the request: ${content}`,
-      category:
-        content.toLowerCase().includes('cloud') ||
-        content.toLowerCase().includes('vm')
-          ? 'Cloud'
-          : content.toLowerCase().includes('access')
-            ? 'Identity and Access'
-            : content.toLowerCase().includes('phish')
-              ? 'Cybersecurity'
-              : 'General IT',
-      priority: content.toLowerCase().includes('phish') ? 'High' : 'Medium',
-      risk: content.toLowerCase().includes('phish') ? 'Elevated' : 'Normal',
-    }));
-
-    if (shouldShowEscalation(content, response)) setShowEscalation(true);
+    try {
+      const response = await sendMessage(sessionId, content, currentUser?.id);
+      setMessages((current) => [...current, createAssistantMessage(response)]);
+      const draft = normalizeTicketPrefill(response.ticket_prefill, content);
+      setTicketDraft(draft);
+      if (response.escalate) setShowEscalation(true);
+    } catch {
+      setError('The AI service could not be reached. Please confirm it is running on port 8001.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCreateTicket = async (draft = ticketDraft) => {
-    await createMockTicketFromChat({
+    const ticket = await createTicketFromEscalation({
       ...draft,
+      description: draft.summary,
       aiSummary: draft.summary,
+      requesterEmail: currentUser?.email || draft.requester_email || 'requester@example.com',
     });
-    setTicketConfirmation('Ticket SPS-2026-042 created successfully.');
+    setTicketConfirmation(`Ticket ${ticket.ticketNumber || ticket.id} created successfully.`);
+    return ticket;
   };
 
   return (
@@ -139,8 +155,10 @@ export default function AIChat() {
             support ticket for human review.
           </p>
         </div>
-        <Badge tone="blue">Mock knowledge base</Badge>
+        <Badge tone="blue">Live AI service</Badge>
       </div>
+
+      {error && <div className="requester-action-notice" role="alert">{error}</div>}
 
       <div className="ai-chat-layout">
         <section className="ai-chat-conversation-card" aria-label="AI conversation">
@@ -171,8 +189,8 @@ export default function AIChat() {
                 draft={ticketDraft}
                 onContinue={() => setShowEscalation(false)}
                 onCreate={handleCreateTicket}
-                onCreated={() =>
-                  setTicketConfirmation('Ticket SPS-2026-042 created successfully.')
+                onCreated={(ticketNumber) =>
+                  setTicketConfirmation(`Ticket ${ticketNumber} created successfully.`)
                 }
               />
             )}
@@ -191,7 +209,7 @@ export default function AIChat() {
           <Card
             className="ai-chat-preview-card"
             title="Ticket Preview"
-            subtitle="Prepared from the current mock conversation."
+            subtitle="Prepared from the current AI conversation."
             actions={<Badge value="chat" />}
           >
             <dl className="ai-chat-ticket-preview">
@@ -201,21 +219,19 @@ export default function AIChat() {
               </div>
               <div>
                 <dt>Suggested category</dt>
-                <dd>{ticketDraft.category}</dd>
+                <dd>{String(ticketDraft.category).replaceAll('_', ' ')}</dd>
               </div>
               <div className="ai-chat-ticket-preview__badges">
                 <span>
                   <dt>Priority</dt>
                   <dd>
-                    <Badge value={ticketDraft.priority.toLowerCase()} />
+                    <Badge value={ticketDraft.priority} />
                   </dd>
                 </span>
                 <span>
                   <dt>Risk level</dt>
                   <dd>
-                    <Badge
-                      tone={ticketDraft.risk === 'Elevated' ? 'amber' : 'green'}
-                    >
+                    <Badge tone={ticketDraft.risk === 'high' ? 'red' : 'green'}>
                       {ticketDraft.risk}
                     </Badge>
                   </dd>

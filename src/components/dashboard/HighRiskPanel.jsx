@@ -3,7 +3,7 @@ import Badge from '../common/Badge';
 import Card from '../common/Card';
 
 export default function HighRiskPanel({ tickets }) {
-  const highRiskTickets = tickets.filter((ticket) => ticket.risk === 'High Risk');
+  const highRiskTickets = tickets.filter((ticket) => ticket.riskLevel === 'high' || ticket.risk === 'High Risk');
 
   return (
     <Card
@@ -25,12 +25,12 @@ export default function HighRiskPanel({ tickets }) {
             <span className="high-risk-item__content">
               <strong>{ticket.subject}</strong>
               <small>
-                {ticket.id} &middot; {ticket.requesterName}
+                {ticket.ticketNumber || ticket.id} &middot; {ticket.requesterName}
               </small>
             </span>
             <span className="high-risk-item__badges">
               <Badge tone="red">High Risk</Badge>
-              <Badge tone="amber">{ticket.status}</Badge>
+              <Badge tone="amber">{ticket.statusLabel || ticket.status}</Badge>
             </span>
           </Link>
         ))}

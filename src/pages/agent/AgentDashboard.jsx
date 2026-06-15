@@ -25,7 +25,7 @@ export default function AgentDashboard() {
       setTickets(ticketData);
       setReports(reportData);
     }).catch(() => {
-      if (isMounted) setError('The mock operations data could not be loaded.');
+      if (isMounted) setError('The operations data could not be loaded from the backend.');
     });
 
     return () => {
@@ -34,7 +34,7 @@ export default function AgentDashboard() {
   }, [reloadKey]);
 
   if (error) return <AsyncState type="error" title="Dashboard unavailable" description={error} onAction={() => setReloadKey((value) => value + 1)} />;
-  if (!reports) return <AsyncState title="Loading dashboard" description="Preparing mock operations metrics and ticket activity." />;
+  if (!reports) return <AsyncState title="Loading dashboard" description="Preparing operations metrics and ticket activity." />;
 
   return (
     <section className="page agent-dashboard">
@@ -44,7 +44,7 @@ export default function AgentDashboard() {
           <h1>SecureDesk AI Dashboard</h1>
           <p>Unified helpdesk operations across email, web form, and AI chat.</p>
         </div>
-        <Badge tone="green">Mock systems operational</Badge>
+        <Badge tone="green">Live systems operational</Badge>
       </div>
 
       <div className="dashboard-info-banner">

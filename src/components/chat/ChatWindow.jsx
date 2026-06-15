@@ -1,30 +1,62 @@
-import { useEffect, useRef, useState } from 'react';
-import { createMockTicketFromChat, getInitialMessages, sendMockMessage } from '../../services/chatService.js';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import authService from '../../services/authService.js';
+import { createTicketFromEscalation, getInitialMessages, sendMessage } from '../../services/chatService.js';
 import ChatHeader from './ChatHeader';
 import ChatInput from './ChatInput';
 import ChatMessage from './ChatMessage';
 import ChatSuggestions from './ChatSuggestions';
 import CreateTicketFromChat from './CreateTicketFromChat';
 
-const escalationTerms = [
-  'create ticket',
-  'report phishing',
-  'cannot resolve',
-  "can't resolve",
-  'human agent',
-  'speak to an agent',
-];
+function createUserMessage(content) {
+  return {
+    id: `USER-${Date.now()}`,
+    role: 'user',
+    type: 'message',
+    content,
+    createdAt: new Date().toISOString(),
+  };
+}
 
-function shouldShowEscalation(message) {
-  const normalized = message.toLowerCase();
-  return escalationTerms.some((term) => normalized.includes(term));
+function createAssistantMessage(response) {
+  const sources = Array.isArray(response.source)
+    ? response.source
+    : response.source
+      ? [response.source]
+      : [];
+
+  return {
+    id: `ASSISTANT-${Date.now()}`,
+    role: 'assistant',
+    type: 'message',
+    content: response.response || response.message || '',
+    citations: sources.map((source, index) => ({
+      id: `${source}-${index}`,
+      label: String(source),
+      source: String(source),
+    })),
+    createdAt: new Date().toISOString(),
+  };
+}
+
+function normalizeTicketDraft(prefill, fallbackMessage) {
+  return {
+    subject: prefill?.subject || fallbackMessage.slice(0, 72) || 'Support request from AI Chat',
+    summary: prefill?.summary || prefill?.description || fallbackMessage,
+    category: prefill?.category || 'general_it',
+    priority: prefill?.priority || 'medium',
+    risk: prefill?.risk_level || prefill?.risk || 'standard',
+    source: 'chat',
+  };
 }
 
 export default function ChatWindow({ onClose }) {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showTicketCard, setShowTicketCard] = useState(false);
+  const [ticketDraft, setTicketDraft] = useState(null);
   const messageAreaRef = useRef(null);
+  const sessionId = useMemo(() => `widget-${crypto.randomUUID?.() || Date.now()}`, []);
+  const currentUser = authService.getCurrentUser();
 
   useEffect(() => {
     let isMounted = true;
@@ -51,33 +83,25 @@ export default function ChatWindow({ onClose }) {
       return;
     }
 
-    const userMessage = {
-      id: `USER-${Date.now()}`,
-      role: 'user',
-      type: 'message',
-      content,
-      createdAt: new Date().toISOString(),
-    };
-
-    setMessages((current) => [...current, userMessage]);
+    setMessages((current) => [...current, createUserMessage(content)]);
     setIsLoading(true);
 
-    const response = await sendMockMessage(content);
-    setMessages((current) => [...current, response]);
-    setIsLoading(false);
-
-    if (
-      shouldShowEscalation(content) ||
-      response.content.includes('agent may need more details')
-    ) {
-      setShowTicketCard(true);
+    try {
+      const response = await sendMessage(sessionId, content, currentUser?.id);
+      setMessages((current) => [...current, createAssistantMessage(response)]);
+      setTicketDraft(normalizeTicketDraft(response.ticket_prefill, content));
+      if (response.escalate) setShowTicketCard(true);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleCreateTicket = (ticketDraft) =>
-    createMockTicketFromChat({
-      ...ticketDraft,
-      aiSummary: ticketDraft.summary,
+  const handleCreateTicket = (draft) =>
+    createTicketFromEscalation({
+      ...draft,
+      description: draft.summary,
+      aiSummary: draft.summary,
+      requesterEmail: currentUser?.email || 'requester@example.com',
     });
 
   return (
@@ -101,6 +125,7 @@ export default function ChatWindow({ onClose }) {
         )}
         {showTicketCard && (
           <CreateTicketFromChat
+            draft={ticketDraft || undefined}
             onContinue={() => setShowTicketCard(false)}
             onCreate={handleCreateTicket}
           />

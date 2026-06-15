@@ -7,11 +7,7 @@ import TicketPriorityBadge from '../../components/tickets/TicketPriorityBadge';
 import TicketReplyBox from '../../components/tickets/TicketReplyBox';
 import TicketStatusBadge from '../../components/tickets/TicketStatusBadge';
 import TicketTimeline from '../../components/tickets/TicketTimeline';
-import {
-  addTicketComment,
-  getTicketById,
-  updateTicketStatus,
-} from '../../services/ticketService.js';
+import { addEvent, getTicket, updateTicket } from '../../services/ticketService.js';
 
 function riskTone(risk) {
   if (risk === 'High Risk') return 'red';
@@ -31,13 +27,13 @@ export default function TicketDetail() {
     setIsLoading(true);
     setError('');
 
-    getTicketById(ticketId).then((result) => {
+    getTicket(ticketId).then((result) => {
       if (!isMounted) return;
       setTicket(result);
       setIsLoading(false);
     }).catch(() => {
       if (!isMounted) return;
-      setError('The mock ticket could not be loaded.');
+      setError('The ticket could not be loaded from the backend.');
       setIsLoading(false);
     });
 
@@ -46,36 +42,42 @@ export default function TicketDetail() {
     };
   }, [ticketId, reloadKey]);
 
-  const addComment = async (type, message) => {
+  const reloadTicket = async () => {
+    const updated = await getTicket(ticket.id);
+    setTicket(updated);
+  };
+
+  const addComment = async (eventType, message, isPublic) => {
     try {
-      const updated = await addTicketComment(ticket.id, {
-        type,
-        actor: 'Mock Service Desk User',
-        message,
+      await addEvent(ticket.id, {
+        event_type: eventType,
+        content: message,
+        is_public: isPublic,
+        channel: 'portal',
       });
-      setTicket(updated);
+      await reloadTicket();
     } catch {
-      setError('The mock timeline update could not be saved.');
+      setError('The timeline update could not be saved.');
     }
   };
 
   const changeStatus = async (status) => {
     try {
-      const updated = await updateTicketStatus(ticket.id, status);
+      const updated = await updateTicket(ticket.id, { status });
       setTicket(updated);
     } catch {
-      setError('The mock status change could not be saved.');
+      setError('The status change could not be saved.');
     }
   };
 
   if (error) return <AsyncState type="error" title="Ticket unavailable" description={error} onAction={() => setReloadKey((value) => value + 1)} />;
-  if (isLoading) return <AsyncState title="Loading ticket" description="Preparing the unified mock ticket timeline." />;
+  if (isLoading) return <AsyncState title="Loading ticket" description="Preparing the unified ticket timeline." />;
 
   if (!ticket) {
     return (
       <section className="ticket-not-found">
         <h1>Ticket not found</h1>
-        <p>The requested mock ticket does not exist.</p>
+        <p>The requested ticket does not exist.</p>
         <Link className="button button--primary" to="/agent/queue">
           Return to ticket queue
         </Link>
@@ -91,7 +93,7 @@ export default function TicketDetail() {
 
       <header className="ticket-detail-header">
         <div>
-          <span className="ticket-detail-header__id">{ticket.id}</span>
+          <span className="ticket-detail-header__id">{ticket.ticketNumber || ticket.id}</span>
           <h1>{ticket.subject}</h1>
           <p>
             Created by {ticket.requesterName} via{' '}
@@ -124,9 +126,9 @@ export default function TicketDetail() {
           >
             <TicketReplyBox
               currentStatus={ticket.status}
-              onAddNote={(message) => addComment('Internal note added', message)}
-              onResolve={() => changeStatus('Resolved')}
-              onSendReply={(message) => addComment('Email reply sent', message)}
+              onAddNote={(message) => addComment('internal_note', message, false)}
+              onResolve={() => changeStatus('resolved')}
+              onSendReply={(message) => addComment('agent_reply_portal', message, true)}
               onUpdateStatus={changeStatus}
             />
           </Card>
@@ -150,7 +152,7 @@ export default function TicketDetail() {
               </div>
               <div>
                 <dt>Category</dt>
-                <dd>{ticket.category}</dd>
+                <dd>{ticket.categoryLabel}</dd>
               </div>
               <div>
                 <dt>Assigned team</dt>
@@ -158,14 +160,14 @@ export default function TicketDetail() {
               </div>
               <div>
                 <dt>SLA</dt>
-                <dd className={ticket.sla.includes('minutes') ? 'ticket-sla-at-risk' : ''}>
+                <dd className={ticket.sla.includes('minutes') || ticket.sla.includes('breached') ? 'ticket-sla-at-risk' : ''}>
                   {ticket.sla}
                 </dd>
               </div>
             </dl>
           </Card>
 
-          <Card title="AI Summary" subtitle="Mock classification and context summary.">
+          <Card title="AI Summary" subtitle="Classification and context summary.">
             <p className="ticket-detail-ai-summary">{ticket.aiSummary}</p>
           </Card>
 
@@ -173,10 +175,10 @@ export default function TicketDetail() {
             {ticket.attachments.length ? (
               <div className="ticket-attachments">
                 {ticket.attachments.map((attachment) => (
-                  <button
-                    type="button"
+                  <a
+                    href={attachment.url}
                     key={attachment.id}
-                    aria-label={`Open mock attachment ${attachment.name}`}
+                    aria-label={`Open attachment ${attachment.name}`}
                   >
                     <span aria-hidden="true">AT</span>
                     <span>
@@ -185,7 +187,7 @@ export default function TicketDetail() {
                         {attachment.type} &middot; {attachment.size}
                       </small>
                     </span>
-                  </button>
+                  </a>
                 ))}
               </div>
             ) : (

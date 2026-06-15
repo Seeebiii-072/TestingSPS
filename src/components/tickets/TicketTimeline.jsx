@@ -10,6 +10,11 @@ const eventCodes = {
   'Portal comment': 'PC',
   'Status changed': 'ST',
   'Email reply sent': 'ER',
+  'Ticket Created': 'TC',
+  'Agent Reply Portal': 'RP',
+  'Internal Note': 'IN',
+  'Status Change': 'ST',
+  'Email Received': 'EM',
 };
 
 function formatEventDate(value) {

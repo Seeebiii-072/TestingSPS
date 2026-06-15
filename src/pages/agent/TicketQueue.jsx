@@ -4,7 +4,7 @@ import AsyncState from '../../components/common/AsyncState';
 import Badge from '../../components/common/Badge';
 import TicketFilters from '../../components/tickets/TicketFilters';
 import TicketTable from '../../components/tickets/TicketTable';
-import { filterTickets } from '../../services/ticketService.js';
+import { getTickets } from '../../services/ticketService.js';
 
 const emptyFilters = {
   search: '',
@@ -27,13 +27,13 @@ export default function TicketQueue() {
     setIsLoading(true);
     setError('');
 
-    filterTickets(filters).then((results) => {
+    getTickets(filters).then((results) => {
       if (!isMounted) return;
       setTickets(results);
       setIsLoading(false);
     }).catch(() => {
       if (!isMounted) return;
-      setError('The mock ticket queue could not be loaded.');
+      setError('The ticket queue could not be loaded from the backend.');
       setIsLoading(false);
     });
 
@@ -73,13 +73,13 @@ export default function TicketQueue() {
             <span>Click any row to open the complete ticket timeline.</span>
           </div>
           <Badge tone={isLoading ? 'amber' : 'green'}>
-            {isLoading ? 'Refreshing' : 'Current mock data'}
+            {isLoading ? 'Refreshing' : 'Live backend data'}
           </Badge>
         </div>
         {error ? (
           <AsyncState type="error" title="Ticket queue unavailable" description={error} onAction={() => setFilters({ ...filters })} />
         ) : isLoading ? (
-          <AsyncState title="Loading ticket queue" description="Applying filters to the mock ticket dataset." />
+          <AsyncState title="Loading ticket queue" description="Applying filters to backend tickets." />
         ) : (
           <TicketTable
             tickets={tickets}

@@ -1,16 +1,32 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import AsyncState from '../../components/common/AsyncState';
 import Badge from '../../components/common/Badge';
 import Card from '../../components/common/Card';
 import StatCard from '../../components/common/StatCard';
 import TicketPriorityBadge from '../../components/tickets/TicketPriorityBadge';
 import TicketStatusBadge from '../../components/tickets/TicketStatusBadge';
-import { mockTickets } from '../../data/mockTickets.js';
+import { getTickets } from '../../services/ticketService.js';
 
 export default function SecurityDashboard() {
-  const highRisk = mockTickets.filter((ticket) => ticket.risk === 'High Risk');
-  const incidents = mockTickets.filter((ticket) => ticket.category === 'Cybersecurity');
-  const approvals = mockTickets.filter((ticket) => ticket.status === 'Waiting Approval');
-  const phishingReports = 2;
+  const [tickets, setTickets] = useState([]);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    getTickets()
+      .then(setTickets)
+      .catch(() => setError('Security tickets could not be loaded from the backend.'))
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  if (error) return <AsyncState type="error" title="Security dashboard unavailable" description={error} />;
+  if (isLoading) return <AsyncState title="Loading security dashboard" description="Fetching security workload from the backend." />;
+
+  const highRisk = tickets.filter((ticket) => ticket.riskLevel === 'high');
+  const incidents = tickets.filter((ticket) => ticket.category === 'cybersecurity');
+  const approvals = tickets.filter((ticket) => ticket.status === 'waiting_approval');
+  const phishingReports = incidents.filter((ticket) => /phish/i.test(`${ticket.subject} ${ticket.description || ''}`)).length;
 
   return (
     <section className="page security-dashboard-page">
@@ -26,7 +42,7 @@ export default function SecurityDashboard() {
       <div className="security-stat-grid">
         <StatCard title="High-risk queue" value={highRisk.length} icon="HR" trend="Review" trendDirection="warning" description="Security and access tickets" />
         <StatCard title="Security incidents" value={incidents.length} icon="SI" trend="Active" description="Cybersecurity category tickets" />
-        <StatCard title="Phishing reports" value={phishingReports} icon="PH" trend="+1 today" trendDirection="warning" description="Mock suspected phishing reports" />
+        <StatCard title="Phishing reports" value={phishingReports} icon="PH" trend="Live" trendDirection="warning" description="Suspected phishing reports" />
         <StatCard title="Waiting approval" value={approvals.length} icon="AP" trend="Human action" trendDirection="warning" description="Sensitive requests awaiting review" />
       </div>
 
@@ -47,7 +63,7 @@ export default function SecurityDashboard() {
                 <span className="security-ticket-list__icon" aria-hidden="true">!</span>
                 <span className="security-ticket-list__content">
                   <strong>{ticket.subject}</strong>
-                  <small>{ticket.id} - {ticket.requesterName}</small>
+                  <small>{ticket.ticketNumber || ticket.id} - {ticket.requesterName}</small>
                 </span>
                 <span className="security-ticket-list__badges">
                   <TicketStatusBadge status={ticket.status} />
@@ -58,12 +74,12 @@ export default function SecurityDashboard() {
           </div>
         </Card>
 
-        <Card title="Approval Statistics" subtitle="Mock review outcomes for this month.">
+        <Card title="Approval Statistics" subtitle="Current high-risk review queue.">
           <div className="approval-stat-list">
-            <div><span>Waiting Approval</span><strong>3</strong></div>
-            <div><span>Approved</span><strong>14</strong></div>
-            <div><span>Rejected</span><strong>2</strong></div>
-            <div><span>More Info Requested</span><strong>4</strong></div>
+            <div><span>Waiting Approval</span><strong>{approvals.length}</strong></div>
+            <div><span>Approved/In Progress</span><strong>{highRisk.filter((ticket) => ticket.status === 'in_progress').length}</strong></div>
+            <div><span>Closed</span><strong>{highRisk.filter((ticket) => ticket.status === 'closed').length}</strong></div>
+            <div><span>Waiting User</span><strong>{highRisk.filter((ticket) => ticket.status === 'waiting_user').length}</strong></div>
           </div>
         </Card>
       </div>

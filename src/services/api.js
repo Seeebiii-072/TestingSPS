@@ -1,30 +1,25 @@
-const DEFAULT_DELAY = 120;
+import axios from 'axios';
+import { API_URL } from '../config/constants.js';
 
-export function cloneMockData(data) {
-  return data === undefined ? undefined : JSON.parse(JSON.stringify(data));
-}
+const api = axios.create({
+  baseURL: API_URL,
+});
 
-export function mockApiResponse(data, delay = DEFAULT_DELAY) {
-  return new Promise((resolve) => {
-    globalThis.setTimeout(() => resolve(cloneMockData(data)), delay);
-  });
-}
+api.interceptors.request.use((config) => {
+  const token = sessionStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
-export function mockApiError(message, code = 'MOCK_API_ERROR', delay = DEFAULT_DELAY) {
-  return new Promise((_, reject) => {
-    globalThis.setTimeout(() => {
-      const error = new Error(message);
-      error.code = code;
-      reject(error);
-    }, delay);
-  });
-}
-
-const api = {
-  get: (data) => mockApiResponse(data),
-  post: (data) => mockApiResponse(data),
-  patch: (data) => mockApiResponse(data),
-  delete: (data) => mockApiResponse(data),
-};
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      sessionStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(err);
+  }
+);
 
 export default api;

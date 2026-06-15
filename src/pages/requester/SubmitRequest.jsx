@@ -3,19 +3,31 @@ import { Link } from 'react-router-dom';
 import Badge from '../../components/common/Badge';
 import Card from '../../components/common/Card';
 import RequestForm from '../../components/forms/RequestForm';
-import { createTicketFromForm } from '../../services/ticketService.js';
+import { createTicketFromForm, uploadFile } from '../../services/ticketService.js';
 
 export default function SubmitRequest() {
   const [confirmation, setConfirmation] = useState(null);
+  const [error, setError] = useState('');
 
   const submitRequest = async (data) => {
-    await createTicketFromForm(data);
-    setConfirmation({
-      id: 'SPS-2026-015',
-      source: 'portal_form',
-      status: 'New',
-      email: data.requesterEmail,
-    });
+    setError('');
+    try {
+      const ticket = await createTicketFromForm(data);
+      await Promise.all(
+        (data.attachments || [])
+          .filter((attachment) => attachment.file)
+          .map((attachment) => uploadFile(ticket.id, attachment.file)),
+      );
+      setConfirmation({
+        id: ticket.id,
+        ticketNumber: ticket.ticketNumber,
+        source: ticket.source,
+        status: ticket.statusLabel || ticket.status,
+        email: ticket.requesterEmail,
+      });
+    } catch {
+      setError('The request could not be submitted. Please check the API connection and try again.');
+    }
   };
 
   return (
@@ -39,7 +51,7 @@ export default function SubmitRequest() {
           </span>
           <div>
             <p className="eyebrow">Request submitted</p>
-            <h2>Ticket SPS-2026-015 created successfully.</h2>
+            <h2>Ticket {confirmation.ticketNumber || confirmation.id} created successfully.</h2>
             <p>
               Your request is now available in the unified helpdesk ticket
               system.
@@ -70,8 +82,9 @@ export default function SubmitRequest() {
           <Card
             className="submit-request-form-card"
             title="Request details"
-            subtitle="All fields use mock data and remain in the frontend session."
+            subtitle="Requests are submitted directly to the backend ticket API."
           >
+            {error && <p className="form-error" role="alert">{error}</p>}
             <RequestForm onSubmit={submitRequest} />
           </Card>
 

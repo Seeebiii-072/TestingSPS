@@ -17,7 +17,7 @@ export default function ChatInput({ disabled = false, onSend }) {
         className="chat-input__attachment"
         type="button"
         disabled
-        aria-label="Attachments are not available in this mock"
+        aria-label="Attachments are not available in chat"
         title="Attachments are not available yet"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">

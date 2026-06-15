@@ -18,25 +18,26 @@ export default function CreateTicketFromChat({
   onCreated,
 }) {
   const [isCreating, setIsCreating] = useState(false);
-  const [isCreated, setIsCreated] = useState(false);
+  const [createdTicketNumber, setCreatedTicketNumber] = useState('');
 
   const createTicket = async () => {
     setIsCreating(true);
-    await onCreate(draft);
-    setIsCreated(true);
+    const ticket = await onCreate(draft);
+    const ticketNumber = ticket?.ticketNumber || ticket?.ticket_number || ticket?.id || 'created';
+    setCreatedTicketNumber(ticketNumber);
     setIsCreating(false);
-    onCreated?.('SPS-2026-042');
+    onCreated?.(ticketNumber);
   };
 
-  if (isCreated) {
+  if (createdTicketNumber) {
     return (
       <div className="chat-ticket-card chat-ticket-card--success" role="status">
         <span className="chat-ticket-card__success-icon" aria-hidden="true">
           OK
         </span>
         <div>
-          <strong>Ticket SPS-2026-042 created successfully.</strong>
-          <p>A service desk agent will review the mock request.</p>
+          <strong>Ticket {createdTicketNumber} created successfully.</strong>
+          <p>A service desk agent will review the request.</p>
         </div>
       </div>
     );
