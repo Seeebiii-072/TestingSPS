@@ -1,6 +1,7 @@
 # SPS SecureDesk AI
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 **Multi-Channel IT Helpdesk Platform** — Users can create tickets via Email, Web Form, or AI Chat.
 
 ---
@@ -616,6 +617,8 @@ python -m pytest email_worker/tests/ --cov=email_worker
 
 Proprietary — SPS SecureDesk AI. All rights reserved.
 =======
+=======
+>>>>>>> f58ca511ff4b29e26a6e0cfe3706b3683263dbcd
 SPS SecureDesk AI is an AI-assisted enterprise helpdesk platform for managing IT support requests from email, a web portal, and AI chat escalation in one unified ticket queue.
 
 The project replaces a legacy osTicket-style workflow with a modern FastAPI backend, role-based access control, a single ticket lifecycle, approval gates for high-risk requests, SLA tracking, audit logs, and management reporting.
@@ -1053,4 +1056,7 @@ Production checklist:
 | Dev 2 | Email Pipeline | IMAP polling, thread resolver, SMTP notifications, email templates |
 | Dev 3 | AI Layer | KB search, chat assistant, classifier, summarizer, escalation bridge |
 | Dev 4 | Frontend Portal | React UI, submit form, chat widget, agent queue, dashboards |
+<<<<<<< HEAD
+>>>>>>> f58ca511ff4b29e26a6e0cfe3706b3683263dbcd
+=======
 >>>>>>> f58ca511ff4b29e26a6e0cfe3706b3683263dbcd
