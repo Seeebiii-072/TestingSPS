@@ -26,7 +26,7 @@ class Settings:
 
     # SMTP
     smtp_host: str = field(
-        default_factory=lambda: os.getenv("SMTP_HOST", "localhost")
+        default_factory=lambda: os.getenv("SMTP_HOST", "mailhog")
     )
     smtp_port: int = int(os.getenv("SMTP_PORT", "1025"))
     smtp_user: str = field(default_factory=lambda: os.getenv("SMTP_USER", ""))
@@ -47,7 +47,12 @@ class Settings:
     # API
     backend_api_url: str = field(
         default_factory=lambda: os.getenv(
-            "BACKEND_API_URL", "http://localhost:8000"
+            "BACKEND_API_URL", "http://backend:8000"
+        )
+    )
+    ai_service_url: str = field(
+        default_factory=lambda: os.getenv(
+            "AI_SERVICE_URL", "http://ai_service:8001"
         )
     )
     portal_url: str = field(
@@ -70,7 +75,7 @@ class Settings:
     def is_mailhog(self) -> bool:
         """Detect if we are using Mailhog (localhost:1025 with no auth)."""
         return (
-            self.smtp_host == "localhost"
+            (self.smtp_host == "localhost" or self.smtp_host == "mailhog")
             and self.smtp_port == 1025
             and not self.smtp_user
         )

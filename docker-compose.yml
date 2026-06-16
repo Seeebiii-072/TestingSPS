@@ -50,7 +50,8 @@ services:
       - email
     build: ./email_worker
     environment:
-      BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
+      BACKEND_API_URL: ${BACKEND_API_URL:-http://backend:8000}
+      AI_SERVICE_URL: ${AI_SERVICE_URL:-http://ai_service:8001}
       SMTP_HOST: ${SMTP_HOST:-mailhog}
       SMTP_PORT: ${SMTP_PORT:-1025}
       IMAP_HOST: ${IMAP_HOST:-}
@@ -67,7 +68,7 @@ services:
       - ai
     build: ./ai
     environment:
-      BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
+      BACKEND_API_URL: ${BACKEND_API_URL:-http://backend:8000}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     ports:
       - "8001:8001"

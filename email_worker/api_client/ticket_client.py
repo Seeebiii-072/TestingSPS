@@ -22,6 +22,9 @@ class TicketClient:
     def __init__(self, base_url: Optional[str] = None) -> None:
         self.base_url = (base_url or settings.backend_api_url).rstrip("/")
         self._client: Optional[httpx.AsyncClient] = None
+        # Separate client for AI classification service
+        self._ai_base_url = (settings.ai_service_url).rstrip("/")
+        self._ai_client: Optional[httpx.AsyncClient] = None
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
@@ -31,10 +34,20 @@ class TicketClient:
             )
         return self._client
 
+    async def _get_ai_client(self) -> httpx.AsyncClient:
+        if self._ai_client is None or self._ai_client.is_closed:
+            self._ai_client = httpx.AsyncClient(
+                base_url=self._ai_base_url,
+                timeout=httpx.Timeout(30.0),
+            )
+        return self._ai_client
+
     async def close(self) -> None:
         """Close the underlying HTTP client."""
         if self._client and not self._client.is_closed:
             await self._client.aclose()
+        if self._ai_client and not self._ai_client.is_closed:
+            await self._ai_client.aclose()
 
     @async_retry(max_attempts=3, base_delay=1.0)
     async def create_ticket(self, payload: TicketCreatePayload) -> Dict[str, Any]:
@@ -104,12 +117,12 @@ class TicketClient:
         Returns:
             A ClassifyResponse with category, priority, and team.
         """
-        client = await self._get_client()
+        ai_client = await self._get_ai_client()
         logger.info(
-            "Classifying email: subject=%s", subject
+            "Classifying email via AI service: subject=%s", subject
         )
-        response = await client.post(
-            "/ai/classify",
+        response = await ai_client.post(
+            "/api/classify",
             json={"subject": subject, "description": description},
         )
         response.raise_for_status()

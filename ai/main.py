@@ -24,11 +24,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.include_router(chat.router)
-app.include_router(chat.router, prefix="/api/v1", include_in_schema=False)
-app.include_router(classifier.router, prefix="/api/v1")
-app.include_router(summariser.router, prefix="/api/v1")
-app.include_router(kb.router, prefix="/api/v1")
+app.include_router(chat.router, prefix="/api")
+app.include_router(classifier.router, prefix="/api")
+app.include_router(summariser.router, prefix="/api")
+app.include_router(kb.router, prefix="/api")
 
 
 @app.get("/health", tags=["health"])

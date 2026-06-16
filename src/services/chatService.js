@@ -21,7 +21,7 @@ export function getInitialMessages() {
 }
 
 export async function sendMessage(session_id, message, user_id) {
-  const response = await aiApi.post('/chat', { session_id, message, user_id });
+  const response = await aiApi.post('/api/chat', { session_id, message, user_id });
   return response.data;
 }
 

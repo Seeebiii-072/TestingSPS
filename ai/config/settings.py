@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     service_name: str = "SPS SecureDesk AI"
     service_port: int = Field(default=8001, ge=1, le=65535)
-    backend_api_url: str = "http://localhost:8000"
+    backend_api_url: str = "http://backend:8000"
 
     llm_provider: str = "anthropic"
 

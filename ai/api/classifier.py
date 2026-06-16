@@ -4,7 +4,7 @@ from ai.schemas.classifier import ClassifierRequest, ClassifierResponse
 from ai.services.classifier_service import ClassifierService
 
 
-router = APIRouter(prefix="/classifier", tags=["classifier"])
+router = APIRouter(prefix="/classify", tags=["classifier"])
 
 
 @router.post("", response_model=ClassifierResponse)
