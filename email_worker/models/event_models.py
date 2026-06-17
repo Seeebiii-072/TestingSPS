@@ -42,6 +42,8 @@ class TimelineEventPayload(BaseModel):
 
     event_type: str
     content: str
+    is_public: bool = True
+    channel: str = "email"
 
 
 class ClassifyResponse(BaseModel):
