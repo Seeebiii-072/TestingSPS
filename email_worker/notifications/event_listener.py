@@ -85,6 +85,8 @@ class EventListener:
                     timeline_payload = TimelineEventPayload(
                         event_type="agent_reply_email",
                         content=f"Agent reply notification sent to {requester_email}",
+                        is_public=True,
+                        channel="email",
                     )
                     try:
                         await self.ticket_client.append_timeline_event(

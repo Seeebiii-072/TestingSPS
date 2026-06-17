@@ -41,7 +41,7 @@ class TimelineEventCreate(BaseModel):
     event_type: TimelineEventType
     content: str = Field(min_length=1)
     is_public: bool = True
-    channel: str = Field(min_length=1, max_length=20)
+    channel: str = Field(min_length=1, max_length=20, default="email")
 
     @field_validator("channel")
     @classmethod
