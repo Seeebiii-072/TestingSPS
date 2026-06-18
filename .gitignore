@@ -26,3 +26,8 @@ build/
 .DS_Store
 Thumbs.dbtest_attachment.txt
 downloaded_attachment.txt
+*.json.tmp
+*_proof.txt
+downloaded_*
+create_*_ticket.json
+login_*.json

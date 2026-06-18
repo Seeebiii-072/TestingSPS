@@ -1,1 +1,0 @@
-{"subject":"Suspicious email: password reset","description":"User received a phishing email asking for credentials.","source":"email","category":"cybersecurity","requester_email":"employee@sps.com","requester_name":"Employee","priority":"high","team":"SOC"}
