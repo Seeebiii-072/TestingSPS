@@ -18,7 +18,7 @@ export default function AdminManagementPage({
           <h1>{title}</h1>
           <p>{description}</p>
         </div>
-        <Button disabled>{actionLabel}</Button>
+        <Button>{actionLabel}</Button>
       </div>
 
       <div className="future-integration-note">
@@ -56,7 +56,7 @@ export default function AdminManagementPage({
                     <td key={column.key}>{row[column.key]}</td>
                   ))}
                   <td>
-                    <Button variant="outline" disabled>
+                    <Button variant="outline">
                       Manage
                     </Button>
                   </td>
