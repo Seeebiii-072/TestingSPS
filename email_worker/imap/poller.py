@@ -207,9 +207,21 @@ class IMAPPoller:
 
         team = _soc_routing_rule(classify)
 
+        description = email_data.plain_text_body or email_data.html_body or ""
+
+        # Append attachment metadata to the description so it is visible on the ticket
+        if email_data.attachments:
+            attachment_lines = ["\n\n--- Attachments ---"]
+            for att in email_data.attachments:
+                size_kb = att.size / 1024
+                attachment_lines.append(
+                    f"  • {att.filename} ({att.content_type}, {size_kb:.1f} KB)"
+                )
+            description += "\n".join(attachment_lines)
+
         ticket_payload = TicketCreatePayload(
             subject=email_data.subject,
-            description=email_data.plain_text_body or email_data.html_body or "",
+            description=description,
             requester_email=email_data.from_address,
             category=classify.category,
             priority=classify.priority,

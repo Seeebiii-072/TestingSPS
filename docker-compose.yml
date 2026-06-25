@@ -70,6 +70,9 @@ services:
       - BACKEND_API_URL=${BACKEND_API_URL:-http://backend:8000}
       - AI_SERVICE_URL=${AI_SERVICE_URL:-http://ai_service:8001}
       - PORTAL_URL=${PORTAL_URL:-http://localhost:5173}
+      - MESSAGE_STORE_PATH=${MESSAGE_STORE_PATH:-/app/email_worker/data}
+    volumes:
+      - email_worker_data:/app/email_worker/data
     restart: unless-stopped
     depends_on:
       backend:
@@ -96,3 +99,4 @@ services:
 volumes:
   pgdata:
   uploads:
+  email_worker_data:

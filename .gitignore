@@ -31,3 +31,6 @@ downloaded_attachment.txt
 downloaded_*
 create_*_ticket.json
 login_*.json
+
+# email_worker runtime artifacts
+email_worker/data/message_store.json
