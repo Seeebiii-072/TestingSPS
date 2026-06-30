@@ -1,0 +1,288 @@
+INFO:     Will watch for changes in these directories: ['c:\\Users\\osama\\OneDrive\\Desktop\\Intership Task\\sps-securedesk-ai\\backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [14132] using WatchFiles
+INFO:     Started server process [19436]
+INFO:     Waiting for application startup.
+INFO:sps.main:Default test users already exist, skipping
+INFO:     Application startup complete.
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:     127.0.0.1:50323 - "GET /health HTTP/1.1" 200 OK
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:     127.0.0.1:50384 - "GET /health HTTP/1.1" 200 OK
+INFO:watchfiles.main:1 change detected
+INFO:     127.0.0.1:50385 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:watchfiles.main:1 change detected
+INFO:     127.0.0.1:50389 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:watchfiles.main:1 change detected
+INFO:     127.0.0.1:50390 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:watchfiles.main:1 change detected
+INFO:     127.0.0.1:50395 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:sps.notification_service:Created 5 notifications for ticket SPS-2026-023
+INFO:     127.0.0.1:50396 - "POST /tickets HTTP/1.1" 201 Created
+INFO:sps.notification_service:Created 5 notifications for ticket SPS-2026-024
+INFO:     127.0.0.1:50397 - "POST /tickets HTTP/1.1" 201 Created
+INFO:sps.notification_service:Created 5 notifications for ticket SPS-2026-025
+INFO:     127.0.0.1:50398 - "POST /tickets HTTP/1.1" 201 Created
+INFO:     127.0.0.1:50399 - "GET /tickets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50400 - "GET /tickets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50401 - "GET /tickets/8982bdf6-75f2-4b13-b478-fa05344f9fdf HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50402 - "POST /tickets/8982bdf6-75f2-4b13-b478-fa05344f9fdf/events HTTP/1.1" 201 Created
+INFO:     127.0.0.1:50403 - "POST /tickets/8982bdf6-75f2-4b13-b478-fa05344f9fdf/events HTTP/1.1" 201 Created
+INFO:watchfiles.main:4 changes detected
+INFO:     127.0.0.1:50404 - "PATCH /tickets/8982bdf6-75f2-4b13-b478-fa05344f9fdf HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50405 - "PATCH /tickets/8982bdf6-75f2-4b13-b478-fa05344f9fdf HTTP/1.1" 403 Forbidden
+INFO:     127.0.0.1:50406 - "POST /tickets/39f0e175-98a0-48bd-bc4d-804846def257/approve HTTP/1.1" 200 OK
+INFO:sps.notification_service:Created 5 notifications for ticket SPS-2026-026
+INFO:     127.0.0.1:50407 - "POST /tickets HTTP/1.1" 201 Created
+INFO:     127.0.0.1:50410 - "POST /tickets/92d8a5ee-39bf-43fe-9634-0faa9f1c0792/approve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50411 - "GET /reports/summary HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50412 - "GET /tickets HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:50413 - "GET /tickets HTTP/1.1" 200 OK
+INFO:sps.notification_service:Created 5 notifications for ticket SPS-2026-027
+INFO:     127.0.0.1:50414 - "POST /tickets HTTP/1.1" 201 Created
+INFO:watchfiles.main:3 changes detected
+INFO:sps.notification_service:Created 5 notifications for ticket SPS-2026-028
+INFO:     127.0.0.1:50415 - "POST /tickets HTTP/1.1" 201 Created
+INFO:     127.0.0.1:50416 - "GET /tickets/lookup?ticket_number=SPS-2026-023&email=intern@sps.com HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50417 - "GET /tickets/lookup?ticket_number=SPS-2026-023&email=wrong@email.com HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50418 - "GET /tickets/lookup HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:50419 - "GET /tickets/lookup?ticket_number=SPS-2026-001 HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:50420 - "GET /tickets/lookup?email=test@test.com HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:50421 - "GET /tickets/lookup?ticket_number=SPS-9999-999&email=test@test.com HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50422 - "GET /admin/categories HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50423 - "POST /admin/categories HTTP/1.1" 201 Created
+INFO:     127.0.0.1:50424 - "GET /admin/sla-policies HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50425 - "POST /admin/sla-policies HTTP/1.1" 201 Created
+INFO:watchfiles.main:3 changes detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+INFO:watchfiles.main:1 change detected
+WARNING:  WatchFiles detected changes in 'models\sla_policy.py'. Reloading...
+ INFO:     127.0.0.1:65243 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:sps.notification_service:Created 5 notifications for ticket SPS-2026-029
+INFO:     127.0.0.1:65267 - "POST /tickets HTTP/1.1" 201 Created
+INFO:sps.notification_service:Created 5 notifications for ticket SPS-2026-030
+INFO:     127.0.0.1:65357 - "POST /tickets HTTP/1.1" 201 Created
+INFO:     127.0.0.1:65422 - "GET /tickets/lookup?ticket_number=SPS-2026-029&email=test@example.com HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65443 - "GET /tickets/lookup?ticket_number=SPS-2026-029&email=wrong@example.com HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:65447 - "GET /tickets/lookup HTTP/1.1" 400 Bad Request
