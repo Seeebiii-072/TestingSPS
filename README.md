@@ -932,7 +932,7 @@ python -m venv .venv
 .venv\Scripts\activate
 
 # 3. Install dependencies
-pip install -r email_worker/requirements.txt
+pip install -r email_worker/requirements.txt -r email_worker/requirements-dev.txt
 
 # 4. Configure environment
 Copy-Item email_worker\.env.example email_worker\.env
