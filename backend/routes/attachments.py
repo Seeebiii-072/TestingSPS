@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
-from middleware.auth_middleware import get_current_user, get_optional_current_user
+from middleware.auth_middleware import get_current_user
 from middleware.security_middleware import log_security_event
 from models.attachment import Attachment
 from models.timeline_event import TimelineEvent, TimelineEventType
@@ -76,13 +76,13 @@ async def upload_attachment(
     ticket_id: uuid.UUID,
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
-    current_user: Annotated[User | None, Depends(get_optional_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
     file: UploadFile = File(...),
 ) -> Attachment:
     ticket = await ticket_service.get_ticket_by_id(db, ticket_id)
     if not ticket:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
-    if current_user and not ticket_service.user_can_view_ticket(current_user, ticket):
+    if not ticket_service.user_can_view_ticket(current_user, ticket):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
 
     max_size = _max_upload_size_bytes()
@@ -92,7 +92,7 @@ async def upload_attachment(
             action="security.oversized_upload",
             request=request,
             db=db,
-            actor_id=current_user.id if current_user else None,
+            actor_id=current_user.id,
             details={
                 "ticket_id": str(ticket_id),
                 "filename": _safe_filename(file.filename or "attachment"),
@@ -112,7 +112,7 @@ async def upload_attachment(
 
     attachment = Attachment(
         ticket_id=ticket_id,
-        uploaded_by=current_user.id if current_user else None,
+        uploaded_by=current_user.id,
         filename=original_name,
         file_path=str(file_path),
         file_size=len(content),
@@ -123,8 +123,8 @@ async def upload_attachment(
         TimelineEvent(
             ticket_id=ticket_id,
             event_type=TimelineEventType.FILE_UPLOADED,
-            actor_id=current_user.id if current_user else None,
-            actor_email=current_user.email if current_user else ticket.requester_email,
+            actor_id=current_user.id,
+            actor_email=current_user.email,
             content=original_name,
             is_public=True,
             channel="portal",
@@ -133,7 +133,7 @@ async def upload_attachment(
     await write_audit_log(
         db,
         ticket_id=ticket_id,
-        actor_id=current_user.id if current_user else None,
+        actor_id=current_user.id,
         action="ticket.attachment_uploaded",
         channel="portal",
         details={"filename": original_name, "mime_type": mime_type, "file_size": len(content)},
