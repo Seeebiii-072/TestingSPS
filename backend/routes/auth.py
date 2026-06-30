@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from middleware.security_middleware import log_security_event
-from models.user import User
+from models.user import User, UserRole
 from schemas.auth import LoginRequest, RegisterRequest, TokenResponse, TokenUser
 from schemas.user import UserPublic
 from services.auth_service import create_access_token, hash_password, verify_password
@@ -59,7 +59,7 @@ async def register(payload: RegisterRequest, db: Annotated[AsyncSession, Depends
         email=payload.email,
         full_name=payload.full_name,
         hashed_password=hash_password(payload.password),
-        role=payload.role,
+        role=UserRole.EMPLOYEE,
     )
     db.add(user)
     await db.commit()
