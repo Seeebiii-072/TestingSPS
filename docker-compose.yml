@@ -38,6 +38,7 @@ services:
       MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-10}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:5174,http://localhost:3000,http://localhost:5199,http://127.0.0.1:5199}
+      AI_SERVICE_URL: ${AI_SERVICE_URL:-http://ai_service:8001}
     ports:
       - "8000:8000"
     depends_on:

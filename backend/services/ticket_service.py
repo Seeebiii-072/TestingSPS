@@ -1,23 +1,30 @@
 import json
+import logging
+import os
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+import httpx
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from models.ticket import RiskLevel, Ticket, TicketCategory, TicketStatus, TicketTeam
+from models.ticket import RiskLevel, Ticket, TicketCategory, TicketPriority, TicketSource, TicketStatus, TicketTeam
 from models.timeline_event import TimelineEvent, TimelineEventType
 from models.user import ROLE_LEVELS, User, UserRole
 from schemas.ticket import ApprovalRequest, TicketCreate, TicketUpdate, TimelineEventCreate
 from services.audit_service import write_audit_log
 from services.notification_service import create_notifications_for_new_ticket
-from services.sla_service import compute_sla_due_at
+from services.sla_service import compute_sla_due_at, compute_sla_fields
 
+
+logger = logging.getLogger(__name__)
+
+AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://ai_service:8001")
 
 SELF_SERVICE_ROLES = {UserRole.INTERN, UserRole.EMPLOYEE}
 STAFF_ROLES = {UserRole.AGENT, UserRole.SECURITY_ADMIN, UserRole.MANAGER, UserRole.ADMINISTRATOR}
@@ -60,6 +67,33 @@ def _json_safe(value: Any) -> Any:
     return value
 
 
+async def _call_ai_classifier(subject: str, description: str) -> dict[str, Any] | None:
+    """Call the AI classifier service and return the classification result.
+
+    Returns a dict with keys (category, priority, risk_level, team, reasoning)
+    or None on any failure (timeout, connection error, HTTP error).
+    """
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(
+                f"{AI_SERVICE_URL}/api/classify",
+                json={"subject": subject, "description": description},
+            )
+            response.raise_for_status()
+            result = response.json()
+            logger.info("AI classification result: %s", result)
+            return result
+    except httpx.TimeoutException:
+        logger.warning("AI classifier timed out after 15s for subject=%s", subject[:60])
+    except httpx.ConnectError:
+        logger.warning("AI classifier unreachable at %s", AI_SERVICE_URL)
+    except httpx.HTTPStatusError as exc:
+        logger.warning("AI classifier returned HTTP %s for subject=%s", exc.response.status_code, subject[:60])
+    except Exception:
+        logger.exception("Unexpected error calling AI classifier for subject=%s", subject[:60])
+    return None
+
+
 async def generate_ticket_number(db: AsyncSession, year: int) -> str:
     # Locks matching ticket-number rows in PostgreSQL, then a unique retry handles the empty-year race.
     prefix = f"SPS-{year}-"
@@ -98,6 +132,16 @@ async def create_ticket(
     risk_level = _default_risk_level(payload.category)
     ticket_status = TicketStatus.WAITING_APPROVAL if risk_level == RiskLevel.HIGH else TicketStatus.OPEN
     requester_id = actor.id if actor and payload.requester_email.lower() == actor.email.lower() else None
+    team = payload.team if payload.team is not None else _default_team(payload.category)
+    
+    # Compute SLA fields from database policy
+    sla_fields = await compute_sla_fields(
+        db,
+        created_at,
+        payload.priority,
+        payload.category,
+        risk_level,
+    )
 
     for attempt in range(5):
         ticket_number = await generate_ticket_number(db, created_at.year)
@@ -111,10 +155,14 @@ async def create_ticket(
             category=payload.category,
             priority=payload.priority,
             risk_level=risk_level,
-            team=_default_team(payload.category),
+            team=team,
             status=ticket_status,
             ai_summary=payload.ai_summary,
-            sla_due_at=compute_sla_due_at(created_at, payload.priority),
+            sla_due_at=sla_fields["sla_due_at"],
+            sla_response_hours=sla_fields["sla_response_hours"],
+            sla_resolution_hours=sla_fields["sla_resolution_hours"],
+            sla_response_due=sla_fields["sla_response_due"],
+            sla_resolution_due=sla_fields["sla_resolution_due"],
             created_at=created_at,
             updated_at=created_at,
         )
@@ -174,6 +222,67 @@ async def create_ticket(
         await db.commit()
         created_ticket = await get_ticket_by_id(db, ticket.id)
         if created_ticket:
+            # Auto-classify portal_form and chat tickets via the AI service
+            if payload.source in (TicketSource.PORTAL_FORM, TicketSource.CHAT):
+                classification = await _call_ai_classifier(payload.subject, payload.description or "")
+                if classification:
+                    changes: dict[str, dict[str, Any]] = {}
+                    for field_name in ("category", "priority", "risk_level", "team"):
+                        ai_value = classification.get(field_name)
+                        if ai_value is not None:
+                            old_value = getattr(created_ticket, field_name)
+                            new_value_str = str(ai_value).lower()
+                            # Convert string to the appropriate enum
+                            if field_name == "category":
+                                try:
+                                    new_value = TicketCategory(new_value_str)
+                                except ValueError:
+                                    continue
+                            elif field_name == "priority":
+                                try:
+                                    new_value = TicketPriority(new_value_str)
+                                except ValueError:
+                                    continue
+                            elif field_name == "risk_level":
+                                try:
+                                    new_value = RiskLevel(new_value_str)
+                                except ValueError:
+                                    continue
+                            elif field_name == "team":
+                                try:
+                                    new_value = TicketTeam(new_value_str)
+                                except ValueError:
+                                    continue
+                            if old_value != new_value:
+                                changes[field_name] = {"from": _json_safe(old_value), "to": _json_safe(new_value)}
+                                setattr(created_ticket, field_name, new_value)
+
+                    if changes:
+                        created_ticket.updated_at = utc_now()
+                        db.add(
+                            TimelineEvent(
+                                ticket_id=created_ticket.id,
+                                event_type=TimelineEventType.FIELD_UPDATE,
+                                actor_id=None,
+                                actor_email="system",
+                                content="Auto-classified by AI",
+                                is_public=False,
+                                channel="system",
+                            )
+                        )
+                        await write_audit_log(
+                            db,
+                            ticket_id=created_ticket.id,
+                            actor_id=None,
+                            action="ticket.ai_classified",
+                            channel=payload.source.value,
+                            details={"changes": changes, "reasoning": classification.get("reasoning")},
+                            ip_address=ip_address,
+                        )
+                        await db.commit()
+                        # Re-fetch to get the updated ticket with timeline
+                        created_ticket = await get_ticket_by_id(db, ticket.id)
+
             return created_ticket
 
     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ticket creation failed")
@@ -252,7 +361,19 @@ async def update_ticket(
 
     ticket.updated_at = utc_now()
     if "priority" in changes:
-        ticket.sla_due_at = compute_sla_due_at(ticket.updated_at, ticket.priority)
+        # Recalculate SLA fields when priority changes
+        sla_fields = await compute_sla_fields(
+            db,
+            ticket.updated_at,
+            ticket.priority,
+            ticket.category,
+            ticket.risk_level,
+        )
+        ticket.sla_due_at = sla_fields["sla_due_at"]
+        ticket.sla_response_hours = sla_fields["sla_response_hours"]
+        ticket.sla_resolution_hours = sla_fields["sla_resolution_hours"]
+        ticket.sla_response_due = sla_fields["sla_response_due"]
+        ticket.sla_resolution_due = sla_fields["sla_resolution_due"]
         if old_sla_due_at != ticket.sla_due_at:
             changes["sla_due_at"] = {"from": _json_safe(old_sla_due_at), "to": _json_safe(ticket.sla_due_at)}
 
@@ -378,3 +499,31 @@ async def resolve_approval(
     if not updated_ticket:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
     return updated_ticket
+
+
+async def get_ticket_by_number_and_email(db: AsyncSession, ticket_number: str, email: str) -> Ticket | None:
+    """
+    Retrieve a ticket by ticket_number and verify email matches requester_email.
+    Used for guest/public access without authentication.
+    
+    Returns the ticket if:
+    - Ticket exists with the given ticket_number
+    - Email (normalized) matches the ticket's requester_email (normalized)
+    
+    Returns None if ticket doesn't exist or email doesn't match.
+    """
+    result = await db.execute(
+        select(Ticket)
+        .options(selectinload(Ticket.timeline_events), selectinload(Ticket.attachments))
+        .where(Ticket.ticket_number == ticket_number)
+    )
+    ticket = result.scalar_one_or_none()
+    
+    if not ticket:
+        return None
+    
+    # Normalize both emails for comparison
+    if ticket.requester_email.lower() != email.lower():
+        return None
+    
+    return ticket
