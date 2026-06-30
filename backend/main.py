@@ -38,6 +38,28 @@ def _cors_origins() -> list[str]:
     return [origin.strip() for origin in origins.split(",") if origin.strip()]
 
 
+def _seed_default_users_enabled() -> bool:
+    return os.getenv("SEED_DEFAULT_USERS", "false").strip().lower() in {"1", "true", "yes", "on"}
+
+
+async def _seed_default_users(session) -> int:
+    seeded_count = 0
+    for user_data in DEFAULT_USERS:
+        existing = await session.scalar(select(User).where(User.email == user_data["email"]))
+        if existing:
+            continue
+        user = User(
+            email=user_data["email"],
+            full_name=user_data["full_name"],
+            hashed_password=hash_password(user_data["password"]),
+            role=user_data["role"],
+        )
+        session.add(user)
+        seeded_count += 1
+    await session.commit()
+    return seeded_count
+
+
 app = FastAPI(
     title="SPS SecureDesk AI API",
     openapi_tags=[
@@ -77,7 +99,10 @@ app.include_router(users_router)
 async def on_startup() -> None:
     Path(os.getenv("UPLOAD_DIR", "./uploads")).mkdir(parents=True, exist_ok=True)
 
-    # Seed default test users if they don't exist
+    if not _seed_default_users_enabled():
+        logger.info("Default test user seeding disabled; set SEED_DEFAULT_USERS=true to enable it")
+        return
+
     # Tables are created by alembic via the docker-compose command, so we only seed data here.
     try:
         async with AsyncSessionLocal() as session:
@@ -87,22 +112,7 @@ async def on_startup() -> None:
                 logger.warning("Users table not accessible yet (alembic may still be running), skipping seed")
                 return
 
-            seeded_count = 0
-            for user_data in DEFAULT_USERS:
-                existing = await session.scalar(
-                    select(User).where(User.email == user_data["email"])
-                )
-                if existing:
-                    continue
-                user = User(
-                    email=user_data["email"],
-                    full_name=user_data["full_name"],
-                    hashed_password=hash_password(user_data["password"]),
-                    role=user_data["role"],
-                )
-                session.add(user)
-                seeded_count += 1
-            await session.commit()
+            seeded_count = await _seed_default_users(session)
             if seeded_count > 0:
                 logger.info("Seeded %d default test users", seeded_count)
             else:
