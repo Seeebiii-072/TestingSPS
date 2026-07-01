@@ -1,6 +1,7 @@
 import logging
 import re
-from collections.abc import Callable
+import inspect
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 from ai.chat.escalation import (
@@ -12,7 +13,7 @@ from ai.chat.escalation import (
 from ai.chat.session import ChatSession, SessionStore, session_store
 from ai.config.constants import TicketPrefillCategory
 from ai.kb.retriever import RetrievalResult, search
-from ai.llm.router import GenerationResult, generate_response_with_provider
+from ai.llm.router import GenerationResult, async_generate_response_with_provider
 from ai.schemas.chat import (
     ChatEscalationRequest,
     ChatEscalationTicketPrefill,
@@ -35,7 +36,7 @@ FORBIDDEN_RESPONSE_PATTERNS = (
 )
 
 Retriever = Callable[[str, int | None], list[RetrievalResult]]
-Generator = Callable[[str, str], GenerationResult]
+Generator = Callable[[str, str], GenerationResult | Awaitable[GenerationResult]]
 
 
 class ResponseGuardrailError(ValueError):
@@ -207,7 +208,7 @@ class ChatAssistant:
         self,
         *,
         retriever: Retriever = search,
-        generator: Generator = generate_response_with_provider,
+        generator: Generator = async_generate_response_with_provider,
         sessions: SessionStore = session_store,
     ) -> None:
         self._retriever = retriever
@@ -238,7 +239,8 @@ class ChatAssistant:
             sources = _unique_sources(results)
             system_prompt = PROMPT_PATH.read_text(encoding="utf-8").strip()
             user_prompt = _build_user_prompt(request, session, results)
-            generated = self._generator(system_prompt, user_prompt)
+            generated_result = self._generator(system_prompt, user_prompt)
+            generated = await generated_result if inspect.isawaitable(generated_result) else generated_result
 
             try:
                 grounded_response = _validate_and_cite_response(generated.text, sources)

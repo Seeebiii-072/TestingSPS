@@ -1,9 +1,9 @@
-from groq import Groq
+from groq import AsyncGroq
 
 from ai.config.settings import Settings
 
 
-def generate(
+async def generate(
     system_prompt: str,
     user_prompt: str,
     settings: Settings,
@@ -11,11 +11,11 @@ def generate(
     if not settings.groq_api_key:
         raise ValueError("GROQ_API_KEY is not configured")
 
-    client = Groq(
+    client = AsyncGroq(
         api_key=settings.groq_api_key,
         timeout=settings.llm_timeout_seconds,
     )
-    completion = client.chat.completions.create(
+    completion = await client.chat.completions.create(
         model=settings.groq_model,
         messages=[
             {"role": "system", "content": system_prompt},

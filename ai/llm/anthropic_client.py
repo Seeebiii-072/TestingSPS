@@ -1,9 +1,9 @@
-from anthropic import Anthropic
+from anthropic import AsyncAnthropic
 
 from ai.config.settings import Settings
 
 
-def generate(
+async def generate(
     system_prompt: str,
     user_prompt: str,
     settings: Settings,
@@ -11,11 +11,11 @@ def generate(
     if not settings.anthropic_api_key:
         raise ValueError("ANTHROPIC_API_KEY is not configured")
 
-    client = Anthropic(
+    client = AsyncAnthropic(
         api_key=settings.anthropic_api_key,
         timeout=settings.llm_timeout_seconds,
     )
-    message = client.messages.create(
+    message = await client.messages.create(
         model=settings.anthropic_model,
         max_tokens=2048,
         system=system_prompt,
