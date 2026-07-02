@@ -246,20 +246,10 @@ class IMAPPoller:
                 email_data.message_id, ticket_id
             )
 
-        try:
-            await self.email_sender.send_ack_email(
-                to_email=email_data.from_address,
-                ticket_id=ticket_id,
-                subject=email_data.subject,
-                requester_name=email_data.from_address,
-            )
-            logger.info(
-                "Acknowledgment email sent for ticket %s", ticket_id
-            )
-        except Exception as e:
-            logger.error(
-                "Failed to send ack email for ticket %s: %s", ticket_id, e
-            )
+        logger.info(
+            "Ticket %s created from email — ack will be sent by event_listener",
+            ticket_id,
+        )
 
     async def _process_reply_email(
         self, email_data: ParsedEmail, ticket_id: str
