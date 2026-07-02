@@ -13,23 +13,29 @@ from email_worker.utils.logger import logger
 
 
 def _redirect_for_real_delivery(email: str) -> str:
-    """Redirect outbound delivery to a test inbox when configured."""
+    """Redirect placeholder @sps.com addresses to a real test inbox.
+
+    Only affects placeholder @sps.com test addresses — real recipient
+    domains (anything a real requester/approver actually typed in) are
+    always left untouched, even when a redirect base is configured.
+    """
     if not settings.email_test_redirect_base:
         return email
 
     local_part, separator, domain = email.partition("@")
     if not separator:
         return email
-
-    redirect_base = settings.email_test_redirect_base.strip()
-    if not redirect_base:
+    if domain.lower() != "sps.com":
         return email
 
-    if "@" in redirect_base:
-        redirect_user, redirect_domain = redirect_base.split("@", 1)
-        return f"{redirect_user}+{local_part}@{redirect_domain}"
+    redirect_base = settings.email_test_redirect_base.strip()
+    if not redirect_base or "@" not in redirect_base:
+        return email
 
-    return f"{redirect_base}+{local_part}@{domain}"
+    redirect_user, redirect_domain = redirect_base.split("@", 1)
+    if not redirect_user or not redirect_domain:
+        return email
+    return f"{redirect_user}+{local_part}@{redirect_domain}"
 
 
 class EventListener:
@@ -65,7 +71,7 @@ class EventListener:
         )
 
         data = backend_event.data or {}
-        requester_email = data.get("requester_email", "")
+        requester_email = _redirect_for_real_delivery(data.get("requester_email", ""))
         requester_name = data.get("requester_name", "")
         subject = data.get("subject", "Ticket Update")
         # Use human-readable ticket number if available, fall back to UUID
@@ -74,9 +80,8 @@ class EventListener:
         try:
             if backend_event.event_type == "ticket_created":
                 if requester_email:
-                    redirect_email = _redirect_for_real_delivery(requester_email)
                     await self.email_sender.send_ack_email(
-                        to_email=redirect_email,
+                        to_email=requester_email,
                         ticket_id=ticket_ref,
                         subject=subject,
                         requester_name=requester_name,
@@ -88,9 +93,8 @@ class EventListener:
                 reply_content = data.get("content", "")
 
                 if requester_email:
-                    redirect_email = _redirect_for_real_delivery(requester_email)
                     await self.email_sender.send_agent_reply_email(
-                        to_email=redirect_email,
+                        to_email=requester_email,
                         ticket_id=ticket_ref,
                         original_subject=subject,
                         agent_name=agent_name,
@@ -100,7 +104,7 @@ class EventListener:
 
                     timeline_payload = TimelineEventPayload(
                         event_type="internal_note",
-                        content=f"Agent reply notification sent to {redirect_email}",
+                        content=f"Agent reply notification sent to {requester_email}",
                         is_public=False,
                         channel="system",
                     )
@@ -119,9 +123,8 @@ class EventListener:
                 new_status = data.get("new_status", data.get("status", "Updated"))
 
                 if requester_email:
-                    redirect_email = _redirect_for_real_delivery(requester_email)
                     await self.email_sender.send_status_change_email(
-                        to_email=redirect_email,
+                        to_email=requester_email,
                         ticket_id=ticket_ref,
                         subject=subject,
                         new_status=new_status,
@@ -134,8 +137,8 @@ class EventListener:
                     )
 
             elif backend_event.event_type == "approval_required":
-                approver_email = data.get(
-                    "approver_email", data.get("requester_email", "")
+                approver_email = _redirect_for_real_delivery(
+                    data.get("approver_email", data.get("requester_email", ""))
                 )
                 approval_url = data.get(
                     "approval_url",
@@ -143,9 +146,8 @@ class EventListener:
                 )
 
                 if approver_email:
-                    redirect_email = _redirect_for_real_delivery(approver_email)
                     await self.email_sender.send_approval_request_email(
-                        to_email=redirect_email,
+                        to_email=approver_email,
                         ticket_id=ticket_ref,
                         subject=subject,
                         requester_name=requester_name,
