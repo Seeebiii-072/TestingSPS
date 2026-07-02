@@ -29,6 +29,7 @@ router = APIRouter(tags=["events"])
 EVENT_TYPE_MAP: dict[TimelineEventType, str] = {
     TimelineEventType.TICKET_CREATED: "ticket_created",
     TimelineEventType.AGENT_REPLY_PORTAL: "agent_reply",
+    TimelineEventType.AGENT_REPLY_EMAIL: "agent_reply",
     TimelineEventType.STATUS_CHANGE: "status_changed",
     TimelineEventType.APPROVAL_REQUESTED: "approval_required",
 }
@@ -37,6 +38,7 @@ EVENT_TYPE_MAP: dict[TimelineEventType, str] = {
 FORWARDED_EVENT_TYPES = {
     TimelineEventType.TICKET_CREATED,
     TimelineEventType.AGENT_REPLY_PORTAL,
+    TimelineEventType.AGENT_REPLY_EMAIL,
     TimelineEventType.STATUS_CHANGE,
     TimelineEventType.APPROVAL_REQUESTED,
 }
@@ -55,16 +57,6 @@ def _require_internal_api_key(x_internal_api_key: str | None) -> None:
 
 
 def _build_event_data(event: TimelineEvent, ticket: Ticket) -> dict[str, Any]:
-    """Build the 'data' sub-dict for the email_worker event, keyed by event_type.
-
-    Args:
-        event: The timeline event row.
-        ticket: The parent ticket with relationships loaded.
-
-    Returns:
-        A dict containing requester_email, requester_name, subject,
-        plus type-specific fields.
-    """
     requester_name = (
         ticket.requester.full_name if ticket.requester else ticket.requester_email
     )
@@ -72,6 +64,7 @@ def _build_event_data(event: TimelineEvent, ticket: Ticket) -> dict[str, Any]:
         "requester_email": ticket.requester_email,
         "requester_name": requester_name,
         "subject": ticket.subject,
+        "ticket_number": ticket.ticket_number,
     }
 
     mapped_type = EVENT_TYPE_MAP.get(event.event_type, "")
@@ -81,7 +74,6 @@ def _build_event_data(event: TimelineEvent, ticket: Ticket) -> dict[str, Any]:
         base["content"] = event.content or ""
 
     elif mapped_type == "status_changed":
-        # The event content is JSON with changes like {"status": {"from": "open", "to": "resolved"}}
         try:
             changes = json.loads(event.content) if event.content else {}
             if "status" in changes:
@@ -92,9 +84,6 @@ def _build_event_data(event: TimelineEvent, ticket: Ticket) -> dict[str, Any]:
             base["new_status"] = "Updated"
 
     elif mapped_type == "approval_required":
-        # Query users with approver roles for the approver email
-        # In production, you might want to send to all approvers or a round-robin.
-        # For simplicity, we pick the first non-intern approver found.
         pass  # handled separately below
 
     return base
@@ -105,16 +94,6 @@ def _build_event_output(
     ticket: Ticket,
     approver_email: str = "",
 ) -> dict[str, Any]:
-    """Build the full event dict as expected by email_worker.
-
-    Args:
-        event: The timeline event row.
-        ticket: The parent ticket with relationships loaded.
-        approver_email: Pre-resolved approver email (only used for approval_required).
-
-    Returns:
-        An event dict matching the contract in email_worker/notifications/event_listener.py.
-    """
     data = _build_event_data(event, ticket)
     mapped_type = EVENT_TYPE_MAP.get(event.event_type, "")
 
@@ -128,6 +107,7 @@ def _build_event_output(
         "id": str(event.id),
         "event_type": mapped_type,
         "ticket_id": str(event.ticket_id),
+        "ticket_number": ticket.ticket_number,
         "data": data,
     }
 
@@ -142,22 +122,9 @@ async def email_events_feed(
         description="Return only events newer than this UUID (sequential by created_at)",
     ),
 ) -> list[dict[str, Any]]:
-    """Return email events that the email_worker needs to send notifications for.
-
-    This is the endpoint the email_worker polls every ~10 seconds.
-    It returns only events that should trigger an outbound email.
-
-    Strategy: cursor-based. The email_worker passes `since_event_id` (the last
-    event ID it processed) and we return everything newer. This is simpler than
-    a delivery-tracking column, but means if the email_worker restarts and loses
-    its in-memory `_last_event_id`, it may re-process old events on the next poll.
-    The email_worker's own `_processed_event_ids` set handles dedup within a
-    session; a production-grade alternative would add a `delivered_at` or
-    `email_sent` boolean column on the timeline_event table.
-    """
+    """Return email events that the email_worker needs to send notifications for."""
     _require_internal_api_key(x_internal_api_key)
 
-    # Build query for events that should trigger email notifications
     query = (
         select(TimelineEvent)
         .options(
@@ -168,7 +135,6 @@ async def email_events_feed(
         .order_by(TimelineEvent.created_at.asc(), TimelineEvent.id.asc())
     )
 
-    # Cursor: find events newer than the given ID
     if since_event_id:
         try:
             cursor_uuid = uuid.UUID(since_event_id)
@@ -178,24 +144,20 @@ async def email_events_feed(
                     TimelineEvent.created_at > cursor_event.created_at
                 )
         except (ValueError, AttributeError):
-            # Invalid UUID; ignore the cursor and return all
             pass
 
     result = await db.execute(query)
     events = result.scalars().all()
 
-    # Pre-resolve approver emails once if there are any approval_required events
     approver_emails: dict[uuid.UUID, str] = {}
     for ev in events:
         if ev.event_type == TimelineEventType.APPROVAL_REQUESTED:
             ticket_id = ev.ticket_id
             if ticket_id not in approver_emails:
-                # Query users with approver roles
                 approver_result = await db.execute(
                     select(User).where(User.role.in_(APPROVER_ROLES), User.is_active.is_(True))
                 )
                 approvers = approver_result.scalars().all()
-                # Pick the first approver found; in production you might send to all
                 first_approver = next(iter(approvers), None)
                 approver_emails[ticket_id] = (
                     first_approver.email if first_approver else ""
@@ -207,8 +169,11 @@ async def email_events_feed(
         if not ticket:
             continue
 
-        # For agent_reply_portal: only forward public replies
-        if ev.event_type == TimelineEventType.AGENT_REPLY_PORTAL and not ev.is_public:
+        # Only forward public replies
+        if ev.event_type in (
+            TimelineEventType.AGENT_REPLY_PORTAL,
+            TimelineEventType.AGENT_REPLY_EMAIL,
+        ) and not ev.is_public:
             continue
 
         mapped_type = EVENT_TYPE_MAP.get(ev.event_type, "")

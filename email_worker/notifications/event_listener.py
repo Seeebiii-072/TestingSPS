@@ -28,12 +28,6 @@ class EventListener:
         self._poll_interval: int = settings.imap_poll_interval_seconds
 
     async def _process_event(self, event: Dict[str, Any]) -> None:
-        """
-        Process a single backend event and dispatch the appropriate email notification.
-
-        Args:
-            event: The raw event dictionary received from the backend events feed.
-        """
         event_id = event.get("id", "")
         if event_id and event_id in self._processed_event_ids:
             return
@@ -54,19 +48,19 @@ class EventListener:
         requester_email = data.get("requester_email", "")
         requester_name = data.get("requester_name", "")
         subject = data.get("subject", "Ticket Update")
+        # Use human-readable ticket number if available, fall back to UUID
+        ticket_ref = data.get("ticket_number") or backend_event.ticket_id
 
         try:
             if backend_event.event_type == "ticket_created":
                 if requester_email:
                     await self.email_sender.send_ack_email(
                         to_email=requester_email,
-                        ticket_id=backend_event.ticket_id,
+                        ticket_id=ticket_ref,
                         subject=subject,
                         requester_name=requester_name,
                     )
-                    logger.info(
-                        "ACK email sent for ticket %s", backend_event.ticket_id
-                    )
+                    logger.info("ACK email sent for ticket %s", ticket_ref)
 
             elif backend_event.event_type == "agent_reply":
                 agent_name = data.get("agent_name", "Support Agent")
@@ -75,7 +69,7 @@ class EventListener:
                 if requester_email:
                     await self.email_sender.send_agent_reply_email(
                         to_email=requester_email,
-                        ticket_id=backend_event.ticket_id,
+                        ticket_id=ticket_ref,
                         original_subject=subject,
                         agent_name=agent_name,
                         reply_content=reply_content,
@@ -97,10 +91,7 @@ class EventListener:
                             "Failed to log agent_reply_email event: %s", e
                         )
 
-                    logger.info(
-                        "Agent reply email sent for ticket %s",
-                        backend_event.ticket_id,
-                    )
+                    logger.info("Agent reply email sent for ticket %s", ticket_ref)
 
             elif backend_event.event_type == "status_changed":
                 new_status = data.get("new_status", data.get("status", "Updated"))
@@ -108,14 +99,14 @@ class EventListener:
                 if requester_email:
                     await self.email_sender.send_status_change_email(
                         to_email=requester_email,
-                        ticket_id=backend_event.ticket_id,
+                        ticket_id=ticket_ref,
                         subject=subject,
                         new_status=new_status,
                         requester_name=requester_name,
                     )
                     logger.info(
                         "Status change email sent for ticket %s -> %s",
-                        backend_event.ticket_id,
+                        ticket_ref,
                         new_status,
                     )
 
@@ -131,21 +122,19 @@ class EventListener:
                 if approver_email:
                     await self.email_sender.send_approval_request_email(
                         to_email=approver_email,
-                        ticket_id=backend_event.ticket_id,
+                        ticket_id=ticket_ref,
                         subject=subject,
                         requester_name=requester_name,
                         approval_url=approval_url,
                     )
                     logger.info(
                         "Approval request email sent for ticket %s to %s",
-                        backend_event.ticket_id,
+                        ticket_ref,
                         approver_email,
                     )
 
             else:
-                logger.warning(
-                    "Unknown event type: %s", backend_event.event_type
-                )
+                logger.warning("Unknown event type: %s", backend_event.event_type)
 
         except Exception as e:
             logger.error(
