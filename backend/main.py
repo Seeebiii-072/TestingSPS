@@ -23,13 +23,33 @@ logger = logging.getLogger("sps.main")
 load_dotenv()
 
 
+def _seed_email(local_part: str) -> str:
+    """Build a seeded demo user's email address.
+
+    By default, seeded users get placeholder @sps.com addresses (never
+    real, never deliverable — safe for anyone cloning this repo).
+
+    If SEED_EMAIL_BASE is set (e.g. in a developer's local, gitignored
+    .env as "yourname@gmail.com"), seeded users instead get real
+    Gmail "+alias" addresses like "yourname+intern@gmail.com" — all of
+    which land in the same real inbox, so outbound emails sent via a
+    real SMTP provider (instead of Mailhog) can actually be received
+    and inspected during local testing.
+    """
+    override_base = os.getenv("SEED_EMAIL_BASE", "").strip()
+    if override_base and "@" in override_base:
+        user, domain = override_base.split("@", 1)
+        return f"{user}+{local_part}@{domain}"
+    return f"{local_part}@sps.com"
+
+
 DEFAULT_USERS = [
-    {"email": "intern@sps.com", "full_name": "Intern User", "password": "Test1234!", "role": UserRole.INTERN},
-    {"email": "employee@sps.com", "full_name": "Employee User", "password": "Test1234!", "role": UserRole.EMPLOYEE},
-    {"email": "agent@sps.com", "full_name": "Agent User", "password": "Test1234!", "role": UserRole.AGENT},
-    {"email": "secadmin@sps.com", "full_name": "Security Admin", "password": "Test1234!", "role": UserRole.SECURITY_ADMIN},
-    {"email": "manager@sps.com", "full_name": "Manager User", "password": "Test1234!", "role": UserRole.MANAGER},
-    {"email": "admin@sps.com", "full_name": "Administrator", "password": "Test1234!", "role": UserRole.ADMINISTRATOR},
+    {"email": _seed_email("intern"), "full_name": "Intern User", "password": "Test1234!", "role": UserRole.INTERN},
+    {"email": _seed_email("employee"), "full_name": "Employee User", "password": "Test1234!", "role": UserRole.EMPLOYEE},
+    {"email": _seed_email("agent"), "full_name": "Agent User", "password": "Test1234!", "role": UserRole.AGENT},
+    {"email": _seed_email("secadmin"), "full_name": "Security Admin", "password": "Test1234!", "role": UserRole.SECURITY_ADMIN},
+    {"email": _seed_email("manager"), "full_name": "Manager User", "password": "Test1234!", "role": UserRole.MANAGER},
+    {"email": _seed_email("admin"), "full_name": "Administrator", "password": "Test1234!", "role": UserRole.ADMINISTRATOR},
 ]
 
 
