@@ -446,9 +446,8 @@ async def add_timeline_event(
 
     if actor and not user_can_view_ticket(actor, ticket):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
-    if not actor and payload.channel not in {"email", "chat"}:
+    if not actor and payload.channel not in {"email", "chat", "system"}:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required for this event channel")
-
     event = TimelineEvent(
         ticket_id=ticket_id,
         event_type=payload.event_type,
