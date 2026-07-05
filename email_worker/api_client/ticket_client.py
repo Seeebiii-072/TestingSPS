@@ -167,6 +167,66 @@ class TicketClient:
         events: list = response.json()
         return events
 
+    @async_retry(max_attempts=2, base_delay=0.5)
+    async def request_ticket_reply(
+        self, subject: str, description: str, category: str
+    ) -> Dict[str, Any]:
+        """Call the AI service's /api/ticket-reply endpoint.
+
+        Args:
+            subject: The ticket subject.
+            description: The ticket body / description.
+            category: The ticket category.
+
+        Returns:
+            The API response dict with keys: answer, sources, confident, escalate.
+        """
+        client = await self._get_ai_client()
+        logger.info(
+            "Requesting AI ticket reply for subject=%s", subject[:60]
+        )
+        response = await client.post(
+            "/api/ticket-reply",
+            json={
+                "subject": subject,
+                "description": description,
+                "category": category,
+            },
+        )
+        response.raise_for_status()
+        return response.json()
+
+    @async_retry(max_attempts=2, base_delay=0.5)
+    async def resolve_ticket_with_ai(
+        self, ticket_id: str, answer: str, sources: list[str]
+    ) -> Dict[str, Any]:
+        """Call the backend's POST /tickets/{ticket_id}/ai-resolve endpoint.
+
+        Args:
+            ticket_id: The ticket ID (UUID) to resolve.
+            answer: The AI-generated answer text.
+            sources: List of KB source labels.
+
+        Returns:
+            The API response dict.
+        """
+        client = await self._get_backend_client()
+        headers = {}
+        if settings.internal_api_key:
+            headers["X-Internal-Api-Key"] = settings.internal_api_key
+        logger.info(
+            "Resolving ticket %s with AI reply (len=%d chars)",
+            ticket_id,
+            len(answer),
+        )
+        response = await client.post(
+            f"/tickets/{ticket_id}/ai-resolve",
+            json={"answer": answer, "sources": sources},
+            headers=headers,
+        )
+        response.raise_for_status()
+        return response.json()
+
     async def health_check(self) -> bool:
         """Check if the backend API is reachable.
 

@@ -15,6 +15,7 @@ class TestSOCRoutingDetailed:
         classify = ClassifyResponse(
             category="cybersecurity",
             priority="critical",
+            risk_level="high",
             team="it-support",
         )
         team = _soc_routing_rule(classify)
@@ -25,6 +26,7 @@ class TestSOCRoutingDetailed:
         classify = ClassifyResponse(
             category="cybersecurity",
             priority="high",
+            risk_level="standard",
             team="it-support",
         )
         team = _soc_routing_rule(classify)
@@ -35,6 +37,7 @@ class TestSOCRoutingDetailed:
         classify = ClassifyResponse(
             category="networking",
             priority="critical",
+            risk_level="standard",
             team="network-team",
         )
         team = _soc_routing_rule(classify)
@@ -45,6 +48,7 @@ class TestSOCRoutingDetailed:
         classify = ClassifyResponse(
             category="Cybersecurity",
             priority="Critical",
+            risk_level="high",
             team="infrastructure",
         )
         team = _soc_routing_rule(classify)
@@ -55,6 +59,7 @@ class TestSOCRoutingDetailed:
         classify = ClassifyResponse(
             category="hardware",
             priority="low",
+            risk_level="standard",
             team="hardware-team",
         )
         team = _soc_routing_rule(classify)
@@ -65,6 +70,7 @@ class TestSOCRoutingDetailed:
         classify = ClassifyResponse(
             category="",
             priority="critical",
+            risk_level="standard",
             team="default-team",
         )
         team = _soc_routing_rule(classify)

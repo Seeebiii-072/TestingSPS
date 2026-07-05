@@ -34,6 +34,7 @@ class TicketCreatePayload(BaseModel):
     requester_email: str
     category: str = ""
     priority: str = ""
+    risk_level: str = ""
     team: str = ""
 
 
@@ -51,4 +52,5 @@ class ClassifyResponse(BaseModel):
 
     category: str
     priority: str
+    risk_level: str
     team: str

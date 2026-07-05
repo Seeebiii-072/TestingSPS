@@ -15,7 +15,7 @@ from ai.services.chat_service import ChatService
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
-@router.post("", response_model=ChatResponse)
+@router.post("", response_model=ChatResponse, response_model_exclude_none=True)
 async def chat(request: ChatRequest) -> ChatResponse:
     try:
         return await ChatService().respond(request)

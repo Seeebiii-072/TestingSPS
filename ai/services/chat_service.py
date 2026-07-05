@@ -7,4 +7,4 @@ class ChatService:
         self._assistant = assistant or ChatAssistant()
 
     async def respond(self, request: ChatRequest) -> ChatResponse:
-        return await self._assistant.respond(request)
+        return await self._assistant.respond_async(request)

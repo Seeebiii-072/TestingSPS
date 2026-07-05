@@ -163,7 +163,13 @@ async def create_ticket(
         )
 
     created_at = utc_now()
+    # High risk if ANY of: category-based default, classifier-provided risk_level=high,
+    # or priority=critical. This is a strict union — none of these can downgrade another.
     risk_level = _default_risk_level(payload.category)
+    if payload.risk_level == RiskLevel.HIGH:
+        risk_level = RiskLevel.HIGH
+    if payload.priority == TicketPriority.CRITICAL:
+        risk_level = RiskLevel.HIGH
     ticket_status = TicketStatus.WAITING_APPROVAL if risk_level == RiskLevel.HIGH else TicketStatus.OPEN
     requester_id = actor.id if actor and payload.requester_email.lower() == actor.email.lower() else None
     team = _default_team(payload.category)

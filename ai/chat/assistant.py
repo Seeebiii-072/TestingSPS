@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 import inspect
@@ -215,7 +216,7 @@ class ChatAssistant:
         self._generator = generator
         self._sessions = sessions
 
-    async def respond(self, request: ChatRequest) -> ChatResponse:
+    async def _respond_async(self, request: ChatRequest) -> ChatResponse:
         session = self._sessions.get_or_create(request.session_id, request.user_id)
         with session.lock:
             session.add_message("user", request.message)
@@ -258,3 +259,13 @@ class ChatAssistant:
             )
             session.add_message("assistant", response.response)
             return response
+
+    async def respond_async(self, request: ChatRequest) -> ChatResponse:
+        return await self._respond_async(request)
+
+    def respond(self, request: ChatRequest) -> ChatResponse:
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(self._respond_async(request))
+        raise RuntimeError("Cannot call respond() synchronously while event loop is running")

@@ -76,7 +76,7 @@ def _build_event_data(event: TimelineEvent, ticket: Ticket) -> dict[str, Any]:
     mapped_type = EVENT_TYPE_MAP.get(event.event_type, "")
 
     if mapped_type == "agent_reply":
-        base["agent_name"] = event.actor_email or "Support Agent"
+        base["agent_name"] = (event.actor.full_name if event.actor else None) or event.actor_email or "Support Agent"
         base["content"] = event.content or ""
 
     elif mapped_type == "status_changed":
@@ -136,6 +136,7 @@ async def email_events_feed(
         .options(
             selectinload(TimelineEvent.ticket).selectinload(Ticket.requester),
             selectinload(TimelineEvent.ticket).selectinload(Ticket.timeline_events),
+            selectinload(TimelineEvent.actor),
         )
         .where(TimelineEvent.event_type.in_(FORWARDED_EVENT_TYPES))
         .order_by(TimelineEvent.created_at.asc(), TimelineEvent.id.asc())

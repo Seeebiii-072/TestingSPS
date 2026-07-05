@@ -223,6 +223,7 @@ class IMAPPoller:
             requester_email=email_data.from_address,
             category=classify.category,
             priority=classify.priority,
+            risk_level=classify.risk_level,
             team=team,
         )
 
@@ -248,6 +249,88 @@ class IMAPPoller:
             "Ticket %s created from email — ack will be sent by event_listener",
             ticket_id,
         )
+
+        # PART 4: AI auto-reply orchestration for standard (non-critical) tickets
+        if classify.priority.lower() != "critical" and classify.risk_level.lower() != "high":
+            await self._attempt_auto_reply(ticket_id, classify, email_data)
+        else:
+            logger.info(
+                "Ticket %s is critical/high-risk (priority=%s, risk_level=%s) — "
+                "skipping auto-reply, goes through human approval",
+                ticket_id,
+                classify.priority,
+                classify.risk_level,
+            )
+
+    async def _attempt_auto_reply(
+        self,
+        ticket_id: str,
+        classify: ClassifyResponse,
+        email_data: ParsedEmail,
+    ) -> None:
+        """Attempt to auto-reply to a standard ticket using the AI service.
+
+        Calls the AI ticket-reply endpoint. If confident, sends the reply
+        and resolves the ticket via the backend. On any failure, logs a
+        warning and leaves the ticket in its normal OPEN state.
+
+        Args:
+            ticket_id: The ticket ID (UUID string) to potentially resolve.
+            classify: The AI classification result.
+            email_data: The parsed email data.
+        """
+        description = email_data.plain_text_body or email_data.html_body or ""
+        try:
+            reply = await self.ticket_client.request_ticket_reply(
+                subject=email_data.subject,
+                description=description,
+                category=classify.category,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Auto-reply failed for ticket %s: %s — leaving ticket OPEN",
+                ticket_id,
+                exc,
+            )
+            return
+
+        if not reply.get("confident") or reply.get("escalate"):
+            logger.info(
+                "AI not confident for ticket %s (confident=%s, escalate=%s) — "
+                "leaving ticket OPEN for human agent",
+                ticket_id,
+                reply.get("confident"),
+                reply.get("escalate"),
+            )
+            return
+
+        answer = reply.get("answer", "")
+        sources = reply.get("sources", [])
+        if not answer:
+            logger.info(
+                "Auto-reply for ticket %s: empty answer — leaving ticket OPEN",
+                ticket_id,
+            )
+            return
+
+        try:
+            result = await self.ticket_client.resolve_ticket_with_ai(
+                ticket_id=ticket_id,
+                answer=answer,
+                sources=sources,
+            )
+            logger.info(
+                "Auto-reply sent and ticket %s resolved by AI: %s",
+                ticket_id,
+                result,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Failed to resolve ticket %s via AI resolve endpoint: %s "
+                "— ticket remains OPEN",
+                ticket_id,
+                exc,
+            )
 
     async def _process_reply_email(
         self, email_data: ParsedEmail, ticket_id: str

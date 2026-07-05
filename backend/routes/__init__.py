@@ -1,3 +1,4 @@
+from routes.ai_resolve import router as ai_resolve_router
 from routes.approvals import router as approvals_router
 from routes.attachments import router as attachments_router
 from routes.auth import router as auth_router
@@ -9,6 +10,7 @@ from routes.tickets import router as tickets_router
 from routes.users import router as users_router
 
 __all__ = [
+    "ai_resolve_router",
     "approvals_router",
     "attachments_router",
     "auth_router",

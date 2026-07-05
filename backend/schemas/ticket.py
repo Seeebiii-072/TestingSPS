@@ -13,6 +13,7 @@ class TicketCreate(BaseModel):
     description: str | None = None
     category: TicketCategory
     priority: TicketPriority = TicketPriority.MEDIUM
+    risk_level: RiskLevel | None = None
     requester_email: EmailStr
     ai_summary: str | None = None
 
