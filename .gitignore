@@ -58,6 +58,7 @@ lighthouse-report.json
 task_progress.md
 task_progress_*.md
 *.sh
+!ai/build.sh
 *.bat
 *.hex
 *.tmp
