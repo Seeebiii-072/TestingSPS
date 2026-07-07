@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ai.api import chat, classifier, kb, summariser, ticket_reply
+from ai.api import chat, classifier, enhance_description, kb, summariser, ticket_reply
 from ai.config.settings import get_settings
 from ai.services.kb_service import index_all_documents
 
@@ -35,6 +35,7 @@ app.add_middleware(
 
 app.include_router(chat.router, prefix="/api")
 app.include_router(classifier.router, prefix="/api")
+app.include_router(enhance_description.router, prefix="/api")
 app.include_router(summariser.router, prefix="/api")
 app.include_router(kb.router, prefix="/api")
 app.include_router(ticket_reply.router)

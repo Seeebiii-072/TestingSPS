@@ -14,6 +14,27 @@ class BackendAPIError(Exception):
     """Raised when a backend API call fails."""
 
 
+class DuplicateTicketError(Exception):
+    """Raised when the backend returns a 409 duplicate_ticket error.
+
+    Attributes:
+        existing_ticket_number: The ticket number of the existing duplicate.
+        existing_ticket_status: The status of the existing duplicate ticket.
+        message: Human-readable message from the backend.
+    """
+
+    def __init__(
+        self,
+        existing_ticket_number: str = "",
+        existing_ticket_status: str = "",
+        message: str = "",
+    ) -> None:
+        self.existing_ticket_number = existing_ticket_number
+        self.existing_ticket_status = existing_ticket_status
+        self.message = message
+        super().__init__(message or f"Duplicate ticket: {existing_ticket_number}")
+
+
 class BackendClient:
     """Async HTTP client for interacting with the backend ticket API."""
 
@@ -51,6 +72,18 @@ class BackendClient:
             payload["requester_email"] = requester_email
         client = await self._get_client()
         response = await client.post("/tickets", json=payload)
+        if response.status_code == 409:
+            try:
+                error_data = response.json()
+            except Exception:
+                error_data = {}
+            if isinstance(error_data, dict) and error_data.get("detail", {}).get("error") == "duplicate_ticket":
+                detail = error_data.get("detail", {})
+                raise DuplicateTicketError(
+                    existing_ticket_number=detail.get("existing_ticket_number", ""),
+                    existing_ticket_status=detail.get("existing_ticket_status", ""),
+                    message=detail.get("message", "A similar ticket already exists."),
+                )
         response.raise_for_status()
         return response.json()
 

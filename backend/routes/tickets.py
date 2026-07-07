@@ -51,6 +51,22 @@ async def list_tickets(
     )
 
 
+@router.get("/public/{ticket_number}", response_model=TicketDetailRead)
+async def get_ticket_by_number(
+    ticket_number: str,
+    email: Annotated[str, Query(description="Requester email to verify ownership")],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Public endpoint to look up a ticket by ticket_number + requester email.
+    No authentication required — used by the email link "View Ticket" button
+    so that recipients can track their ticket status without logging in.
+    """
+    ticket = await ticket_service.get_ticket_by_number_and_email(db, ticket_number, email)
+    if not ticket:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
+    return ticket
+
+
 @router.get("/{ticket_id}", response_model=TicketDetailRead)
 async def get_ticket(
     ticket_id: uuid.UUID,

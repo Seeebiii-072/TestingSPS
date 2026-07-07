@@ -59,10 +59,10 @@ export default function Login() {
         <Brand />
         <div className="login-panel__intro">
           <p className="eyebrow">Secure service operations</p>
-          <h1>{isGuestOpen ? 'Submit a Report' : 'Sign in to SecureDesk AI'}</h1>
+          <h1>{isGuestOpen ? 'Submit a Request' : 'Sign in to SecureDesk AI'}</h1>
           <p>
             {isGuestOpen
-              ? 'Submit a service request or report without creating an account.'
+              ? 'Submit a service request without creating an account.'
               : 'Access the enterprise helpdesk workspace for IT, security, cloud, and operational support.'}
           </p>
         </div>
@@ -111,7 +111,7 @@ export default function Login() {
             aria-expanded={isGuestOpen}
           >
             <span aria-hidden="true">{isGuestOpen ? '←' : '📩'}</span>
-            {isGuestOpen ? 'Back to Sign In' : 'Sign in as guest'}
+            {isGuestOpen ? 'Back to Sign In' : 'New to SPS? Submit a Request'}
             <span className={`login-panel__guest-chevron ${isGuestOpen ? 'login-panel__guest-chevron--open' : ''}`} aria-hidden="true" style={{ display: isGuestOpen ? 'none' : 'inline' }}>▾</span>
           </button>
         </div>

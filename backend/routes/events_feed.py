@@ -12,6 +12,7 @@ identity and ticket metadata.
 import json
 import os
 import uuid
+from datetime import datetime, timedelta, timezone
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
@@ -38,6 +39,7 @@ EVENT_TYPE_MAP: dict[TimelineEventType, str] = {
     TimelineEventType.AGENT_REPLY_EMAIL: "agent_reply",
     TimelineEventType.STATUS_CHANGE: "status_changed",
     TimelineEventType.APPROVAL_REQUESTED: "approval_required",
+    TimelineEventType.DUPLICATE_ATTEMPT: "duplicate_detected",
 }
 
 # The event_types we should forward to the email_worker
@@ -47,6 +49,7 @@ FORWARDED_EVENT_TYPES = {
     TimelineEventType.AGENT_REPLY_EMAIL,
     TimelineEventType.STATUS_CHANGE,
     TimelineEventType.APPROVAL_REQUESTED,
+    TimelineEventType.DUPLICATE_ATTEMPT,
 }
 
 APPROVER_ROLES = {UserRole.SECURITY_ADMIN, UserRole.MANAGER, UserRole.ADMINISTRATOR}
@@ -113,11 +116,7 @@ def _build_event_output(
         "id": str(event.id),
         "event_type": mapped_type,
         "ticket_id": str(event.ticket_id),
-<<<<<<< HEAD
-        "ticket_number": ticket.ticket_number,  # Add friendly ticket number (SPS-2026-116)
-=======
         "ticket_number": ticket.ticket_number,
->>>>>>> 62b75b58065f4026f863e06d9693a1f862477c41
         "data": data,
     }
 
@@ -157,6 +156,13 @@ async def email_events_feed(
                 )
         except (ValueError, AttributeError):
             pass
+    else:
+        # When no cursor is provided (e.g. email_worker just restarted),
+        # only return events from the last 24 hours to prevent re-sending
+        # notifications for old events.
+        query = query.where(
+            TimelineEvent.created_at >= datetime.now(timezone.utc) - timedelta(hours=24)
+        )
 
     result = await db.execute(query)
     events = result.scalars().all()

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Button from '../common/Button';
 import CategorySelect from './CategorySelect';
 import FileUpload from './FileUpload';
@@ -19,13 +19,27 @@ const initialForm = {
   requesterEmail: '',
 };
 
-export default function RequestForm({ onSubmit }) {
-  const [form, setForm] = useState(initialForm);
+export default function RequestForm({
+  onSubmit,
+  requesterEmail = '',
+  lockRequesterEmail = false,
+}) {
+  const [form, setForm] = useState({
+    ...initialForm,
+    requesterEmail,
+  });
   const [attachments, setAttachments] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiEnhancedDescription, setAiEnhancedDescription] = useState(null);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [enhanceError, setEnhanceError] = useState('');
+  const [showEnhancementPreview, setShowEnhancementPreview] = useState(false);
+  const [originalDescription, setOriginalDescription] = useState('');
+
+  useEffect(() => {
+    if (!requesterEmail) return;
+    setForm((current) => ({ ...current, requesterEmail }));
+  }, [requesterEmail]);
 
   const updateField = (event) => {
     const { name, value } = event.target;
@@ -38,12 +52,40 @@ export default function RequestForm({ onSubmit }) {
     setEnhanceError('');
     try {
       const response = await enhanceDescription(form.subject.trim(), form.description.trim());
-      setAiEnhancedDescription(response.summary || response.enhanced_description || response.description);
+      let enhanced = response.summary || response.enhanced_description || response.description;
+      
+      // Fix first-person perspective: replace all variations of "user" with "I" or "my"
+      enhanced = enhanced
+        .replace(/[Tt]he [Uu]ser/g, 'I')
+        .replace(/the user/g, 'I')
+        .replace(/[Tt]he [Uu]ser's/g, "My")
+        .replace(/[Uu]ser's/g, "my")
+        .replace(/\b[Tt]he [Uu]ser\b/g, 'I')
+        .replace(/\bthe user\b/g, 'I')
+        .replace(/I'm/g, 'I am')
+        .replace(/\bi am\b/gi, 'I am')
+        .replace(/  +/g, ' ');
+      
+      setOriginalDescription(form.description);
+      setAiEnhancedDescription(enhanced);
+      setForm((current) => ({ ...current, description: enhanced }));
+      setShowEnhancementPreview(true);
     } catch {
       setEnhanceError('Could not enhance description with AI. You can still submit your original description.');
     } finally {
       setIsEnhancing(false);
     }
+  };
+
+  const acceptEnhancement = () => {
+    setShowEnhancementPreview(false);
+    setAiEnhancedDescription(null);
+  };
+
+  const rejectEnhancement = () => {
+    setForm((current) => ({ ...current, description: originalDescription }));
+    setShowEnhancementPreview(false);
+    setAiEnhancedDescription(null);
   };
 
   const submitForm = async (event) => {
@@ -109,6 +151,7 @@ export default function RequestForm({ onSubmit }) {
             type="email"
             required
             value={form.requesterEmail}
+            readOnly={lockRequesterEmail}
             onChange={updateField}
           />
         </label>
@@ -122,18 +165,20 @@ export default function RequestForm({ onSubmit }) {
         </div>
 
         <div className="request-field request-field--full request-form__ai-enhance" style={{ marginTop: '10px' }}>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleEnhanceDescription}
-            disabled={isEnhancing || !form.subject.trim() || !form.description.trim()}
-          >
-            {isEnhancing ? 'Enhancing...' : 'Enhance Description with AI'}
-          </Button>
+          {!showEnhancementPreview && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleEnhanceDescription}
+              disabled={isEnhancing || !form.subject.trim() || !form.description.trim()}
+            >
+              {isEnhancing ? 'Enhancing...' : 'Enhance Description with AI'}
+            </Button>
+          )}
           {enhanceError && <p className="form-error" style={{ marginTop: '8px', color: 'red' }}>{enhanceError}</p>}
-          {aiEnhancedDescription && (
-            <div className="ai-enhanced-preview" style={{ marginTop: '12px' }}>
-              <span style={{ fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>AI Enhanced Description Preview:</span>
+          {showEnhancementPreview && (
+            <div className="ai-enhanced-preview" style={{ marginTop: '12px', padding: '8px', backgroundColor: '#f0f7ff', borderRadius: '4px', border: '1px solid #1565c0' }}>
+              <span style={{ fontWeight: 'bold', display: 'block', marginBottom: '6px', color: '#1565c0' }}>✨ AI Enhanced Description Preview:</span>
               <textarea
                 className="chat-ticket-card__textarea"
                 value={aiEnhancedDescription}
@@ -141,14 +186,24 @@ export default function RequestForm({ onSubmit }) {
                 rows={5}
                 style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', backgroundColor: '#f9f9f9', fontFamily: 'inherit' }}
               />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setAiEnhancedDescription(null)}
-                style={{ marginTop: '8px' }}
-              >
-                Clear AI Enhancement
-              </Button>
+              <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={acceptEnhancement}
+                  style={{ flex: 1, fontSize: '0.8rem', padding: '4px 10px', backgroundColor: '#4caf50', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}
+                >
+                  <span>✓</span> Accept
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={rejectEnhancement}
+                  style={{ flex: 1, fontSize: '0.8rem', padding: '4px 10px', backgroundColor: '#f44336', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}
+                >
+                  <span>✗</span> Reject
+                </Button>
+              </div>
             </div>
           )}
         </div>

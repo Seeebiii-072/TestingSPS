@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import SearchInput from './SearchInput';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { ROLES } from '../../config/constants';
 
 const pageTitles = {
   '/requester': 'Dashboard',
@@ -28,10 +29,20 @@ function getPageTitle(pathname) {
   return pageTitles[pathname] || 'SecureDesk AI';
 }
 
+/** Resolve the correct ticket detail path based on user role. */
+function getTicketPath(user, ticketId) {
+  if (!user) return `/agent/tickets/${ticketId}`;
+  const { role } = user;
+  if (role === ROLES.INTERN || role === ROLES.EMPLOYEE) {
+    return `/requester/tickets/${ticketId}`;
+  }
+  return `/agent/tickets/${ticketId}`;
+}
+
 export default function Topbar({ onOpenMenu }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const {
     notifications,
@@ -46,6 +57,21 @@ export default function Topbar({ onOpenMenu }) {
 
   const handleSignOut = () => {
     logout(navigate);
+  };
+
+  const handleNotificationClick = (notification) => {
+    markAsRead([notification.id]);
+    closeDropdown();
+    if (notification.ticket_id) {
+      navigate(getTicketPath(user, notification.ticket_id));
+    }
+  };
+
+  const handleNotificationKeyDown = (e, notification) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleNotificationClick(notification);
+    }
   };
 
   return (
@@ -103,7 +129,9 @@ export default function Topbar({ onOpenMenu }) {
                     key={notification.id}
                     className={`notification-dropdown__item ${notification.is_read ? '' : 'notification-dropdown__item--unread'}`}
                     role="menuitem"
-                    onClick={() => markAsRead([notification.id])}
+                    tabIndex={0}
+                    onClick={() => handleNotificationClick(notification)}
+                    onKeyDown={(e) => handleNotificationKeyDown(e, notification)}
                   >
                     <div className="notification-dropdown__item-content">
                       <strong>{notification.title}</strong>

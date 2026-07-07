@@ -86,13 +86,7 @@ class EventListener:
                         subject=subject,
                         requester_name=requester_name,
                     )
-<<<<<<< HEAD
-                    logger.info(
-                        "ACK email sent for ticket %s", ticket_ref
-                    )
-=======
                     logger.info("ACK email sent for ticket %s", ticket_ref)
->>>>>>> 62b75b58065f4026f863e06d9693a1f862477c41
 
             elif backend_event.event_type == "agent_reply":
                 agent_name = data.get("agent_name", "Support Agent")
@@ -123,14 +117,7 @@ class EventListener:
                             "Failed to log agent_reply_email event: %s", e
                         )
 
-<<<<<<< HEAD
-                    logger.info(
-                        "Agent reply email sent for ticket %s",
-                        ticket_ref,
-                    )
-=======
                     logger.info("Agent reply email sent for ticket %s", ticket_ref)
->>>>>>> 62b75b58065f4026f863e06d9693a1f862477c41
 
             elif backend_event.event_type == "status_changed":
                 new_status = data.get("new_status", data.get("status", "Updated"))
@@ -170,6 +157,26 @@ class EventListener:
                         "Approval request email sent for ticket %s to %s",
                         ticket_ref,
                         approver_email,
+                    )
+
+            elif backend_event.event_type == "duplicate_detected":
+                # Send duplicate notice to the requester informing them their
+                # submission was received but is a duplicate of an existing ticket.
+                if requester_email:
+                    existing_ticket_number = data.get("ticket_number", ticket_ref)
+                    existing_ticket_status = data.get("status", "duplicate")
+                    existing_ticket_subject = data.get("subject", subject)
+                    await self.email_sender.send_duplicate_notice_email(
+                        to_email=requester_email,
+                        to_name=requester_name,
+                        existing_ticket_number=existing_ticket_number,
+                        existing_ticket_status=existing_ticket_status,
+                        existing_ticket_subject=existing_ticket_subject,
+                    )
+                    logger.info(
+                        "Duplicate notice email sent for ticket %s to %s",
+                        ticket_ref,
+                        requester_email,
                     )
 
             else:

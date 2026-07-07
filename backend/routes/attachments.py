@@ -22,7 +22,7 @@ router = APIRouter(prefix="/tickets", tags=["attachments"])
 
 
 def _max_upload_size_bytes() -> int:
-    return int(os.getenv("MAX_UPLOAD_SIZE_MB", "10")) * 1024 * 1024
+    return int(os.getenv("MAX_UPLOAD_SIZE_MB", "5")) * 1024 * 1024
 
 
 def _upload_dir() -> Path:
@@ -100,7 +100,7 @@ async def upload_attachment(
                 "received_size_bytes": len(content),
             },
         )
-        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="File exceeds 10MB limit")
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="File exceeds 5MB limit")
 
     mime_type = _detect_mime(content, file.content_type)
     base_dir = _upload_dir() / str(ticket_id)

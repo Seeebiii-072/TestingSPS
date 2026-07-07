@@ -41,22 +41,33 @@ downloaded_*
 create_*_ticket.json
 login_*.json
 
+# security - never commit secrets
+*.pem
+*.key
+.secrets/
+credentials.json
+service-account.json
+
 # local debug/test artifacts
 server.log
 backend/server.log
-vite-5199.log
-vite-5199.err
+vite-*.log
+vite-*.err
 temp.hex
 lighthouse-report.json
 task_progress.md
-test_complete_flow.sh
-test_endpoints.bat
-test_ticket_api.sh
-test_ticket_detail.sh
-test_ticket_routes.sh
-check_api_structure.sh
-check_ticket_permissions.sh
-verify_requester_id.sh
+task_progress_*.md
+*.sh
+*.bat
+*.hex
+*.tmp
+
+# claude dev task files
+c:/Users/*/AppData/Roaming/Code/User/globalStorage/saoudrizwan.claude-dev/tasks/
+.claude/
 
 # email_worker runtime artifacts
 email_worker/data/message_store.json
+
+# test generated files
+email_worker/data/test_*.json

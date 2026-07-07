@@ -17,6 +17,7 @@ export const TICKET_STATUS = {
   WAITING_USER: 'waiting_user',
   RESOLVED: 'resolved',
   CLOSED: 'closed',
+  DUPLICATE: 'duplicate',
 };
 
 export const CATEGORIES = [
@@ -35,6 +36,7 @@ export const STATUS_COLORS = {
   waiting_user: 'bg-purple-100 text-purple-800',
   resolved: 'bg-teal-100 text-teal-800',
   closed: 'bg-gray-100 text-gray-600',
+  duplicate: 'bg-gray-200 text-gray-500 line-through',
 };
 
 export const SOURCE_LABELS = {

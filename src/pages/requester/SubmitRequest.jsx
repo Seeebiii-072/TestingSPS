@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import Badge from '../../components/common/Badge';
 import Card from '../../components/common/Card';
 import RequestForm from '../../components/forms/RequestForm';
+import { useAuth } from '../../context/AuthContext';
 import { createTicketFromForm, uploadFile } from '../../services/ticketService.js';
 
 export default function SubmitRequest() {
+  const { user } = useAuth();
   const [confirmation, setConfirmation] = useState(null);
   const [error, setError] = useState('');
 
@@ -85,7 +87,11 @@ export default function SubmitRequest() {
             subtitle="Requests are submitted directly to the backend ticket API."
           >
             {error && <p className="form-error" role="alert">{error}</p>}
-            <RequestForm onSubmit={submitRequest} />
+            <RequestForm
+              onSubmit={submitRequest}
+              requesterEmail={user?.email || ''}
+              lockRequesterEmail={Boolean(user?.email)}
+            />
           </Card>
 
           <aside className="submit-request-guidance">

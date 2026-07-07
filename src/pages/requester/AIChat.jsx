@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ChatInput from '../../components/chat/ChatInput';
 import ChatMessage from '../../components/chat/ChatMessage';
-import ChatSuggestions from '../../components/chat/ChatSuggestions';
 import CreateTicketFromChat from '../../components/chat/CreateTicketFromChat';
 import Badge from '../../components/common/Badge';
 import Card from '../../components/common/Card';
@@ -9,15 +8,13 @@ import { createTicketFromEscalation, getInitialMessages, sendMessage, getCategor
 import authService from '../../services/authService.js';
 import { addTicketAttachment } from '../../services/ticketService.js';
 
-const knowledgeTopics = [
-  'VPN',
-  'Email',
-  'Laptop',
-  'Cloud Checklist',
-  'Phishing',
-  'Intern Onboarding',
-  'Access Policy',
-  'Product Overviews',
+const quickHelpItems = [
+  '❓ How do I reset my password?',
+  '❓ How do I connect to VPN?',
+  '❓ My email is not working',
+  '❓ How do I request software access?',
+  '❓ My laptop is running slow',
+  '❓ How do I report a phishing email?',
 ];
 
 const initialTicketDraft = {
@@ -41,23 +38,12 @@ function createUserMessage(content) {
 }
 
 function createAssistantMessage(response) {
-  const responseSources = response.sources || response.source;
-  const sources = Array.isArray(responseSources)
-    ? responseSources
-    : responseSources
-      ? [responseSources]
-      : [];
-
   return {
     id: `PAGE-AI-${Date.now()}`,
     role: 'assistant',
     type: 'message',
     content: response.response || response.message || '',
-    citations: sources.map((source, index) => ({
-      id: `${source}-${index}`,
-      label: String(source),
-      source: String(source),
-    })),
+    citations: [],
     createdAt: new Date().toISOString(),
   };
 }
@@ -212,7 +198,6 @@ export default function AIChat() {
           </div>
 
           <div className="ai-chat-composer">
-            <ChatSuggestions disabled={isLoading} onSelect={handleSend} />
             <ChatInput disabled={isLoading} onSend={handleSend} />
             <p className="chat-safety-footer">
               AI can suggest answers, but sensitive actions require human approval.
@@ -223,19 +208,18 @@ export default function AIChat() {
         <aside className="ai-chat-side-panel">
           <Card
             className="ai-chat-topics-card"
-            title="Knowledge Base Topics"
-            subtitle="Start with an approved support topic."
+            title="Quick Help"
+            subtitle="Click a common issue to get instant help."
           >
             <div className="ai-chat-topics">
-              {knowledgeTopics.map((topic) => (
+              {quickHelpItems.map((item) => (
                 <button
                   type="button"
                   disabled={isLoading}
-                  key={topic}
-                  onClick={() => handleSend(topic)}
+                  key={item}
+                  onClick={() => handleSend(item.replace('❓ ', ''))}
                 >
-                  <span aria-hidden="true">{topic.slice(0, 2).toUpperCase()}</span>
-                  {topic}
+                  {item}
                 </button>
               ))}
             </div>

@@ -10,6 +10,7 @@ export default function KnowledgeBase() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ filename: '', content: '' });
+  const [selectedFile, setSelectedFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [deletingFile, setDeletingFile] = useState(null);
@@ -37,6 +38,7 @@ export default function KnowledgeBase() {
       await kbService.createDocument(form.filename.trim(), form.content.trim());
       setShowForm(false);
       setForm({ filename: '', content: '' });
+      setSelectedFile(null);
       await loadDocuments();
     } catch (err) {
       setFormError(err.response?.data?.detail || 'Failed to create document. Check that the filename ends in .txt and does not already exist.');
@@ -58,6 +60,28 @@ export default function KnowledgeBase() {
     }
   };
 
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.txt')) {
+      setFormError('Only .txt files are supported.');
+      return;
+    }
+    setSelectedFile(file);
+    // Auto-set the filename from the uploaded file
+    setForm((f) => ({ ...f, filename: file.name }));
+    // Read the file content
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result || '';
+      setForm((f) => ({ ...f, content }));
+    };
+    reader.onerror = () => {
+      setFormError('Failed to read the selected file. Please try again.');
+    };
+    reader.readAsText(file);
+  };
+
   const updateField = (e) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
@@ -66,6 +90,7 @@ export default function KnowledgeBase() {
   const cancelForm = () => {
     setShowForm(false);
     setForm({ filename: '', content: '' });
+    setSelectedFile(null);
     setFormError('');
   };
 
@@ -82,11 +107,25 @@ export default function KnowledgeBase() {
         )}
       </div>
 
-      {showForm && (
+          {showForm && (
         <Card className="admin-management-card" title="Add KB document" subtitle="Only .txt files are supported. Content is indexed immediately into the AI vector store.">
           <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.5rem 0' }}>
             <label>
-              Filename <span style={{ color: 'var(--color-text-subtle)', fontSize: '0.85rem' }}>(must end in .txt)</span>
+              Select .txt file from your computer
+              <input
+                type="file"
+                accept=".txt"
+                onChange={handleFileSelect}
+                style={{ marginTop: '0.25rem' }}
+              />
+              {selectedFile && (
+                <span style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-subtle)', marginTop: '0.25rem' }}>
+                  Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+                </span>
+              )}
+            </label>
+            <label>
+              Filename (auto-filled from file, can be edited)
               <input
                 name="filename"
                 required
@@ -96,12 +135,12 @@ export default function KnowledgeBase() {
               />
             </label>
             <label>
-              Document content
+              Document content (loaded from file, editable)
               <textarea
                 name="content"
                 required
                 rows={10}
-                placeholder="Paste the full document text here…"
+                placeholder="Select a .txt file above to load its content…"
                 value={form.content}
                 onChange={updateField}
                 style={{ resize: 'vertical', fontFamily: 'monospace', fontSize: '0.85rem' }}

@@ -16,17 +16,13 @@ from ai.services.chat_service import ChatService
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
-<<<<<<< HEAD
 @router.get("/categories", response_model=list[dict])
 def get_chat_categories() -> list[dict]:
     """Return the hierarchical category tree for the chat interface."""
     return CATEGORY_TREE
 
 
-@router.post("", response_model=ChatResponse)
-=======
 @router.post("", response_model=ChatResponse, response_model_exclude_none=True)
->>>>>>> 62b75b58065f4026f863e06d9693a1f862477c41
 async def chat(request: ChatRequest) -> ChatResponse:
     try:
         return await ChatService().respond(request)

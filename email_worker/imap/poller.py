@@ -60,13 +60,16 @@ class IMAPPoller:
         self.email_sender = email_sender or EmailSender()
         self._client: Optional[aioimaplib.IMAP4_SSL] = None
         self._running = False
-<<<<<<< HEAD
 
-=======
-        self._processed_uids: Set[str] = set()
->>>>>>> 62b75b58065f4026f863e06d9693a1f862477c41
     async def _connect(self) -> aioimaplib.IMAP4_SSL:
-        """Connect to the IMAP server with correct client SSL context."""
+        """Connect to the IMAP server and login.
+
+        Returns:
+            An authenticated IMAP4_SSL client.
+
+        Raises:
+            ConnectionError: If connection or login fails.
+        """
         logger.info(
             "Connecting to IMAP server %s:%d as %s",
             self.host,
@@ -75,35 +78,22 @@ class IMAPPoller:
         )
         try:
             if self.port == 993:
-                import ssl
-                # Create proper client SSL context
-                ssl_context = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
-                ssl_context.check_hostname = True
-                ssl_context.verify_mode = ssl.CERT_REQUIRED
-                
-                client = aioimaplib.IMAP4_SSL(
-                    host=self.host, 
-                    port=self.port,
-                    ssl_context=ssl_context
-                )
+                client = aioimaplib.IMAP4_SSL(host=self.host, port=self.port)
             else:
                 client = aioimaplib.IMAP4(host=self.host, port=self.port)
 
             await client.wait_hello_from_server()
             await client.login(self.user, self.password)
             await client.select("INBOX")
-            logger.info("✅ IMAP connection established and INBOX selected")
+            logger.info("IMAP connection established and INBOX selected")
             return client
-        except Exception as e:
-            logger.error("IMAP connection failed: %s", str(e))
+        except (ConnectionRefusedError, TimeoutError, OSError) as e:
+            logger.error("IMAP connection failed: %s", e)
             raise ConnectionError(f"IMAP connection failed: {e}") from e
-<<<<<<< HEAD
         except aioimaplib.AioImapException as e:
             logger.error("IMAP login failed: %s", e)
             raise ConnectionError(f"IMAP login failed: {e}") from e
 
-=======
->>>>>>> 62b75b58065f4026f863e06d9693a1f862477c41
     async def _ensure_connected(self) -> aioimaplib.IMAP4_SSL:
         """Ensure we have an active IMAP connection, reconnecting if needed.
 
@@ -276,7 +266,40 @@ class IMAPPoller:
             team=team,
         )
 
-        ticket = await self.ticket_client.create_ticket(ticket_payload)
+        try:
+            ticket = await self.ticket_client.create_ticket(ticket_payload)
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 409:
+                try:
+                    error_data = e.response.json()
+                except Exception:
+                    error_data = {}
+                if isinstance(error_data, dict) and error_data.get("error") == "duplicate_ticket":
+                    existing_number = error_data.get("existing_ticket_number", "")
+                    existing_status = error_data.get("existing_ticket_status", "")
+                    logger.warning(
+                        "Duplicate ticket detected for email from %s: existing=%s",
+                        email_data.from_address,
+                        existing_number,
+                    )
+                    try:
+                        await self.email_sender.send_duplicate_notice_email(
+                            to_email=email_data.from_address,
+                            to_name=email_data.from_address,
+                            existing_ticket_number=existing_number,
+                            existing_ticket_status=existing_status,
+                            existing_ticket_subject=email_data.subject,
+                        )
+                        logger.info(
+                            "Duplicate notice email sent to %s for existing ticket %s",
+                            email_data.from_address,
+                            existing_number,
+                        )
+                    except Exception as email_err:
+                        logger.error("Failed to send duplicate notice email: %s", email_err)
+                    return
+            raise
+
         # Use ticket_number (SPS-2026-116) instead of id (UUID) for user-facing references
         ticket_number: str = ticket.get("ticket_number", "")
         ticket_uuid: str = ticket.get("id", "")
@@ -297,106 +320,8 @@ class IMAPPoller:
                 email_data.message_id, ticket_number
             )
 
-        logger.info(
-            "Ticket %s created from email — ack will be sent by event_listener",
-            ticket_id,
-        )
-
-        # PART 4: AI auto-reply orchestration for standard (non-critical) tickets
-        if classify.priority.lower() != "critical" and classify.risk_level.lower() != "high":
-            await self._attempt_auto_reply(ticket_id, classify, email_data)
-        else:
-            logger.info(
-                "Ticket %s is critical/high-risk (priority=%s, risk_level=%s) — "
-                "skipping auto-reply, goes through human approval",
-                ticket_id,
-                classify.priority,
-                classify.risk_level,
-            )
-
-    async def _attempt_auto_reply(
-        self,
-        ticket_id: str,
-        classify: ClassifyResponse,
-        email_data: ParsedEmail,
-    ) -> None:
-        """Attempt to auto-reply to a standard ticket using the AI service.
-
-        Calls the AI ticket-reply endpoint. If confident, sends the reply
-        and resolves the ticket via the backend. On any failure, logs a
-        warning and leaves the ticket in its normal OPEN state.
-
-        Args:
-            ticket_id: The ticket ID (UUID string) to potentially resolve.
-            classify: The AI classification result.
-            email_data: The parsed email data.
-        """
-        description = email_data.plain_text_body or email_data.html_body or ""
-        try:
-<<<<<<< HEAD
-            await self.email_sender.send_ack_email(
-                to_email=email_data.from_address,
-                ticket_id=ticket_number,  # Use friendly ticket number (SPS-2026-116)
-=======
-            reply = await self.ticket_client.request_ticket_reply(
->>>>>>> 62b75b58065f4026f863e06d9693a1f862477c41
-                subject=email_data.subject,
-                description=description,
-                category=classify.category,
-            )
-        except Exception as exc:
-            logger.warning(
-                "Auto-reply failed for ticket %s: %s — leaving ticket OPEN",
-                ticket_id,
-                exc,
-            )
-            return
-
-        if not reply.get("confident") or reply.get("escalate"):
-            logger.info(
-                "AI not confident for ticket %s (confident=%s, escalate=%s) — "
-                "leaving ticket OPEN for human agent",
-                ticket_id,
-                reply.get("confident"),
-                reply.get("escalate"),
-            )
-            return
-
-        answer = reply.get("answer", "")
-        sources = reply.get("sources", [])
-        if not answer:
-            logger.info(
-                "Auto-reply for ticket %s: empty answer — leaving ticket OPEN",
-                ticket_id,
-            )
-            return
-
-        try:
-            result = await self.ticket_client.resolve_ticket_with_ai(
-                ticket_id=ticket_id,
-                answer=answer,
-                sources=sources,
-            )
-            logger.info(
-<<<<<<< HEAD
-                "Acknowledgment email sent for ticket %s", ticket_number
-            )
-        except Exception as e:
-            logger.error(
-                "Failed to send ack email for ticket %s: %s", ticket_number, e
-=======
-                "Auto-reply sent and ticket %s resolved by AI: %s",
-                ticket_id,
-                result,
-            )
-        except Exception as exc:
-            logger.warning(
-                "Failed to resolve ticket %s via AI resolve endpoint: %s "
-                "— ticket remains OPEN",
-                ticket_id,
-                exc,
->>>>>>> 62b75b58065f4026f863e06d9693a1f862477c41
-            )
+        # Ack is now sent by the event_listener via the backend event feed,
+        # so we no longer send it directly from the IMAP poller.
 
     async def _process_reply_email(
         self, email_data: ParsedEmail, ticket_id: str
@@ -416,7 +341,7 @@ class IMAPPoller:
         content = email_data.plain_text_body or email_data.html_body or "(no content)"
 
         event_payload = TimelineEventPayload(
-            event_type="email_received",
+            event_type="email_reply",
             content=content,
         )
 
@@ -504,7 +429,7 @@ class IMAPPoller:
                 except asyncio.TimeoutError:
                     logger.error("Email parsing timed out for UID %s, will retry on next poll", uid)
                     continue
-                    
+
                 if email_data is None:
                     logger.warning("Failed to parse email UID %s, will retry on next poll", uid)
                     continue

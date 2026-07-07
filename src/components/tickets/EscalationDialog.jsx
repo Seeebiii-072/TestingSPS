@@ -4,7 +4,7 @@ import Button from '../common/Button';
 const teams = [
   { value: 'it', label: 'IT Support' },
   { value: 'hr', label: 'HR / People Operations' },
-  { value: 'cybersecurity', label: 'Cybersecurity' },
+  { value: 'security', label: 'Cybersecurity' },
   { value: 'devops', label: 'DevOps / Infrastructure' },
   { value: 'management', label: 'Management' },
 ];

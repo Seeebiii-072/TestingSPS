@@ -1,3 +1,5 @@
+import html
+import re
 import uuid
 from datetime import datetime
 
@@ -7,15 +9,28 @@ from models.ticket import RiskLevel, TicketCategory, TicketPriority, TicketSourc
 from models.timeline_event import TimelineEventType
 
 
+def strip_html(value: str) -> str:
+    """Remove HTML tags from user input to prevent XSS."""
+    return re.sub(r"<[^>]*>", "", html.unescape(value))
+
+
+def sanitize_string(value: str) -> str:
+    """Strip, remove HTML, and limit to safe characters."""
+    cleaned = strip_html(value.strip())
+    # Remove null bytes and control characters except newlines/tabs
+    cleaned = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", cleaned)
+    return cleaned
+
+
 class TicketCreate(BaseModel):
     source: TicketSource
-    subject: str = Field(min_length=1)
-    description: str | None = None
+    subject: str = Field(min_length=1, max_length=500)
+    description: str | None = Field(None, max_length=5000)
     category: TicketCategory
     priority: TicketPriority = TicketPriority.MEDIUM
     risk_level: RiskLevel | None = None
     requester_email: EmailStr
-    ai_summary: str | None = None
+    ai_summary: str | None = Field(None, max_length=2000)
 
     @field_validator("requester_email", mode="before")
     @classmethod
@@ -24,8 +39,22 @@ class TicketCreate(BaseModel):
 
     @field_validator("subject")
     @classmethod
-    def normalize_subject(cls, value: str) -> str:
-        return value.strip()
+    def sanitize_subject(cls, value: str) -> str:
+        return sanitize_string(value)
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def sanitize_description(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return sanitize_string(value)
+
+    @field_validator("ai_summary", mode="before")
+    @classmethod
+    def sanitize_ai_summary(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return sanitize_string(value)
 
 
 class TicketUpdate(BaseModel):
@@ -35,14 +64,26 @@ class TicketUpdate(BaseModel):
     risk_level: RiskLevel | None = None
     team: TicketTeam | None = None
     assigned_agent_id: uuid.UUID | None = None
-    ai_summary: str | None = None
+    ai_summary: str | None = Field(None, max_length=2000)
+
+    @field_validator("ai_summary", mode="before")
+    @classmethod
+    def sanitize_ai_summary(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return sanitize_string(value)
 
 
 class TimelineEventCreate(BaseModel):
     event_type: TimelineEventType
-    content: str = Field(min_length=1)
+    content: str = Field(min_length=1, max_length=50000)
     is_public: bool = True
     channel: str = Field(min_length=1, max_length=20, default="email")
+
+    @field_validator("content")
+    @classmethod
+    def sanitize_content(cls, value: str) -> str:
+        return sanitize_string(value)
 
     @field_validator("channel")
     @classmethod

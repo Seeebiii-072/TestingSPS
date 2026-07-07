@@ -15,8 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from middleware.security_middleware import log_security_event
-<<<<<<< HEAD
-from models.user import User
+from models.user import User, UserRole
 from schemas.auth import (
     ForgotPasswordRequest,
     LoginRequest,
@@ -25,10 +24,6 @@ from schemas.auth import (
     TokenResponse,
     TokenUser,
 )
-=======
-from models.user import User, UserRole
-from schemas.auth import LoginRequest, RegisterRequest, TokenResponse, TokenUser
->>>>>>> 62b75b58065f4026f863e06d9693a1f862477c41
 from schemas.user import UserPublic
 from services.auth_service import (
     create_access_token,

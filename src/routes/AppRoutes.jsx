@@ -24,6 +24,8 @@ import KnowledgeBase from '../pages/admin/KnowledgeBase';
 import Categories from '../pages/admin/Categories';
 import SLASettings from '../pages/admin/SLASettings';
 import EmailSettings from '../pages/admin/EmailSettings';
+import TrackTicket from '../pages/public/TrackTicket';
+import SubmitTicket from '../pages/public/SubmitTicket';
 import NotFound from '../pages/NotFound';
 import Unauthorized from '../pages/Unauthorized';
 import AsyncState from '../components/common/AsyncState';
@@ -65,6 +67,8 @@ export default function AppRoutes() {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/track" element={<TrackTicket />} />
+      <Route path="/submit" element={<SubmitTicket />} />
 
       <Route element={
         <NotificationProvider>

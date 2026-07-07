@@ -11,7 +11,7 @@ const defaultTicketDraft = {
   source: 'chat',
 };
 
-const MAX_ATTACHMENT_SIZE_BYTES = 20 * 1024 * 1024;
+const MAX_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = ['png', 'jpg', 'jpeg', 'pdf', 'docx', 'txt'];
 
 function isAllowedFile(file) {
@@ -40,6 +40,8 @@ export default function CreateTicketFromChat({
   const [attachment, setAttachment] = useState(null);
   const [formError, setFormError] = useState('');
   const [isDragActive, setIsDragActive] = useState(false);
+  const [showEnhancementPreview, setShowEnhancementPreview] = useState(false);
+  const [originalDescription, setOriginalDescription] = useState('');
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -52,7 +54,7 @@ export default function CreateTicketFromChat({
   }, [draft]);
 
   const acceptedFileTypesText = useMemo(
-    () => 'PNG, JPG, JPEG, PDF, DOCX, TXT (Max 20MB)',
+    () => 'PNG, JPG, JPEG, PDF, DOCX, TXT (Max 5MB)',
     [],
   );
 
@@ -65,7 +67,7 @@ export default function CreateTicketFromChat({
     }
 
     if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
-      setFormError('File size exceeds 20MB limit. Please upload a smaller file.');
+      setFormError('File size exceeds 5MB limit. Please upload a smaller file.');
       return;
     }
 
@@ -100,12 +102,40 @@ export default function CreateTicketFromChat({
     setIsEnhancing(true);
     try {
       const response = await enhanceDescription(issueTitle, issueDescription);
-      setAiEnhancedDescription(response.summary || response.enhanced_description || response.description);
+      let enhanced = response.summary || response.enhanced_description || response.description;
+      
+      // Fix first-person perspective: replace all variations of "user" with "I" or "my"
+      enhanced = enhanced
+        .replace(/[Tt]he [Uu]ser/g, 'I')
+        .replace(/the user/g, 'I')
+        .replace(/[Tt]he [Uu]ser's/g, "My")
+        .replace(/[Uu]ser's/g, "my")
+        .replace(/\b[Tt]he [Uu]ser\b/g, 'I')
+        .replace(/\bthe user\b/g, 'I')
+        .replace(/I'm/g, 'I am')
+        .replace(/\bi am\b/gi, 'I am')
+        .replace(/  +/g, ' ');
+      
+      setOriginalDescription(issueDescription);
+      setAiEnhancedDescription(enhanced);
+      setIssueDescription(enhanced);
+      setShowEnhancementPreview(true);
     } catch {
       setFormError('Could not enhance description with AI. You can still submit your original description.');
     } finally {
       setIsEnhancing(false);
     }
+  };
+
+  const acceptEnhancement = () => {
+    setShowEnhancementPreview(false);
+    setAiEnhancedDescription(null);
+  };
+
+  const rejectEnhancement = () => {
+    setIssueDescription(originalDescription);
+    setShowEnhancementPreview(false);
+    setAiEnhancedDescription(null);
   };
 
   const createTicket = async () => {
@@ -225,31 +255,46 @@ export default function CreateTicketFromChat({
           />
         </label>
 
-        <div className="chat-ticket-card__ai-enhance">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleEnhanceDescription}
-            disabled={isEnhancing || !issueTitle || !issueDescription}
-          >
-            {isEnhancing ? 'Enhancing...' : 'Enhance Description with AI'}
-          </Button>
-          {aiEnhancedDescription && (
-            <div className="ai-enhanced-preview">
-              <h4>AI Enhanced Description Preview:</h4>
+        <div className="chat-ticket-card__ai-enhance" style={{ margin: '6px 0' }}>
+          {!showEnhancementPreview && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleEnhanceDescription}
+              disabled={isEnhancing || !issueTitle || !issueDescription}
+              style={{ fontSize: '0.8rem', padding: '4px 10px' }}
+            >
+              {isEnhancing ? 'Enhancing...' : '✨ Enhance with AI'}
+            </Button>
+          )}
+          {showEnhancementPreview && (
+            <div className="ai-enhanced-preview" style={{ marginTop: '6px', padding: '6px', backgroundColor: '#f0f7ff', borderRadius: '4px', border: '1px solid #1565c0' }}>
+              <h4 style={{ fontSize: '0.7rem', marginBottom: '3px', fontWeight: '600', color: '#1565c0' }}>✨ AI Enhanced Preview:</h4>
               <textarea
                 className="chat-ticket-card__textarea"
                 value={aiEnhancedDescription}
                 readOnly
-                rows={7}
+                rows={4}
+                style={{ fontSize: '0.8rem', padding: '4px' }}
               />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setAiEnhancedDescription(null)}
-              >
-                Clear AI Enhancement
-              </Button>
+              <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={acceptEnhancement}
+                  style={{ flex: 1, fontSize: '0.7rem', padding: '3px 7px', backgroundColor: '#4caf50', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}
+                >
+                  <span>✓</span> Accept
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={rejectEnhancement}
+                  style={{ flex: 1, fontSize: '0.7rem', padding: '3px 7px', backgroundColor: '#f44336', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}
+                >
+                  <span>✗</span> Reject
+                </Button>
+              </div>
             </div>
           )}
         </div>

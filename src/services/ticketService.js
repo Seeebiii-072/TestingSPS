@@ -292,11 +292,11 @@ export async function addTicketAttachment(id, attachmentOrFile) {
 }
 
 export function createTicketFromChat(data) {
-  return createTicket({ ...data, source: 'ai_chat' });
+  return createTicket({ ...data, source: 'chat' });
 }
 
 export function createTicketFromForm(data) {
-  return createTicket({ ...data, source: 'form' });
+  return createTicket({ ...data, source: 'portal_form' });
 }
 
 export function createTicketFromDashboard(data) {

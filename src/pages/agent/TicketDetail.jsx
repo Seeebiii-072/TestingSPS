@@ -64,7 +64,6 @@ export default function TicketDetail() {
     setError('');
     try {
       await escalateTicket(ticket.id, {
-        actor_id: 'agent-001',
         note: escalationData.note,
         team: escalationData.team,
       });
@@ -258,12 +257,11 @@ export default function TicketDetail() {
                     value={ticket.team}
                     onChange={(e) => updateTicket(ticket.id, { team: e.target.value }).then(reloadTicket).catch(() => setError('Team update failed.'))}
                   >
-                    <option value="service_desk">Service Desk</option>
-                    <option value="identity_and_access">Identity and Access</option>
-                    <option value="infrastructure">Infrastructure</option>
-                    <option value="application_support">Application Support</option>
-                    <option value="network_operations">Network Operations</option>
-                    <option value="security_operations">Security Operations</option>
+                    <option value="it">IT Support</option>
+                    <option value="security">Cybersecurity</option>
+                    <option value="devops">DevOps / Infrastructure</option>
+                    <option value="hr">HR / People Operations</option>
+                    <option value="management">Management</option>
                   </select>
                 </dd>
               </div>

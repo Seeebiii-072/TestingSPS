@@ -23,7 +23,7 @@ from ai.schemas.chat import (
     ChatResponse,
     TicketPrefill,
 )
-from ai.services.backend_client import BackendAPIError, get_backend_client
+from ai.services.backend_client import BackendAPIError, DuplicateTicketError, get_backend_client
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +99,24 @@ async def _try_create_escalation_ticket(
             ticket_prefill=None,
             ticket_number=ticket_number,
             ticket_id=str(ticket_id) if ticket_id is not None else None,
+        )
+    except DuplicateTicketError as exc:
+        logger.warning(
+            "Duplicate ticket detected for session %s: existing=%s",
+            request.session_id,
+            exc.existing_ticket_number,
+        )
+        return ChatResponse(
+            response=(
+                f"You already have an open ticket ({exc.existing_ticket_number}) "
+                f"with a similar request. No new ticket has been created. "
+                f"A support agent is already working on your existing request."
+            ),
+            sources=[],
+            escalate=True,
+            ticket_prefill=None,
+            ticket_number=exc.existing_ticket_number,
+            ticket_id=None,
         )
     except BackendAPIError as exc:
         logger.warning("Failed to auto-create escalation ticket: %s", exc)

@@ -30,7 +30,7 @@ DEFAULT_USERS = [
     {"email": "secadmin@sps.com", "full_name": "Security Admin", "password": "Test1234!", "role": UserRole.SECURITY_ADMIN},
     {"email": "manager@sps.com", "full_name": "Manager User", "password": "Test1234!", "role": UserRole.MANAGER},
     {"email": "admin@sps.com", "full_name": "Administrator", "password": "Test1234!", "role": UserRole.ADMINISTRATOR},
-    {"email": "ai-agent@sps.com", "full_name": "AI Support Agent", "password": "ai-agent-internal-1234", "role": UserRole.AGENT},
+    {"email": "ai-agent@sps.com", "full_name": "AI Support Agent", "password": "Test1234!", "role": UserRole.AGENT},
 ]
 
 
@@ -48,6 +48,9 @@ async def _seed_default_users(session) -> int:
     for user_data in DEFAULT_USERS:
         existing = await session.scalar(select(User).where(User.email == user_data["email"]))
         if existing:
+            # Update password for existing seeded users so password changes take effect.
+            existing.hashed_password = hash_password(user_data["password"])
+            seeded_count += 1
             continue
         user = User(
             email=user_data["email"],

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ticketService from '../../services/ticketService.js';
 import { useAuth } from '../../context/AuthContext';
 import { enhanceDescription } from '../../services/aiService';
@@ -25,9 +25,29 @@ export default function GuestReportForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [showEnhancementPreview, setShowEnhancementPreview] = useState(false);
+  const [isDescriptionEnhanced, setIsDescriptionEnhanced] = useState(false);
+  const [showAcceptReject, setShowAcceptReject] = useState(false);
+  const [originalDescription, setOriginalDescription] = useState('');
+  const [isEnhancedAccepted, setIsEnhancedAccepted] = useState(false);
+
+  useEffect(() => {
+    if (user?.email) {
+      setEmail(user.email);
+    }
+  }, [user?.email]);
+
+  const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
   const onFilesChange = (e) => {
-    setFiles(Array.from(e.target.files || []));
+    const selectedFiles = Array.from(e.target.files || []);
+    const oversized = selectedFiles.filter((f) => f.size > MAX_FILE_SIZE_BYTES);
+    if (oversized.length > 0) {
+      setError(`File(s) exceed 5MB limit: ${oversized.map((f) => f.name).join(', ')}`);
+      return;
+    }
+    setFiles(selectedFiles);
+    setError('');
   };
 
   const handleEnhanceDescription = async () => {
@@ -35,12 +55,55 @@ export default function GuestReportForm() {
     setIsEnhancing(true);
     try {
       const response = await enhanceDescription(subject.trim(), description.trim());
-      setAiEnhancedDescription(response.summary || response.enhanced_description || response.description);
+      let enhanced = response.enhanced_description || response.summary || response.description;
+      
+      // Fix first-person perspective: replace all variations of "user" with "I" or "my"
+      enhanced = enhanced
+        // Replace "The User" with "I" (all case variations)
+        .replace(/The [Uu]ser/g, 'I')
+        .replace(/[Tt]he [Uu]ser/g, 'I')
+        .replace(/the user/g, 'I')
+        .replace(/The user's/g, "My")
+        .replace(/[Tt]he [Uu]ser's/g, "My")
+        .replace(/User's/g, "My")
+        .replace(/[Uu]ser's/g, "my")
+        .replace(/\bThe [Uu]ser\b/g, 'I')
+        .replace(/\b[Tt]he [Uu]ser\b/g, 'I')
+        .replace(/\bthe user\b/g, 'I')
+        // Replace "I'm" variations
+        .replace(/I'm/g, 'I am')
+        .replace(/\bi am\b/gi, 'I am')
+        // Clean up double spaces
+        .replace(/  +/g, ' ');
+      
+      // Store original description before enhancing
+      setOriginalDescription(description);
+      setAiEnhancedDescription(enhanced);
+      setDescription(enhanced);
+      setShowEnhancementPreview(true);
+      setShowAcceptReject(true);
     } catch {
       setError('Could not enhance description with AI. You can still submit your original description.');
     } finally {
       setIsEnhancing(false);
     }
+  };
+
+  const acceptEnhancement = () => {
+    // Keep the enhanced description (already set in handleEnhanceDescription)
+    setShowAcceptReject(false);
+    setShowEnhancementPreview(false);
+    setAiEnhancedDescription(null);
+    setIsEnhancedAccepted(true);
+  };
+
+  const rejectEnhancement = () => {
+    // Restore original description
+    setDescription(originalDescription);
+    setShowAcceptReject(false);
+    setShowEnhancementPreview(false);
+    setAiEnhancedDescription(null);
+    setIsEnhancedAccepted(false);
   };
 
   const submit = async (e) => {
@@ -61,7 +124,7 @@ export default function GuestReportForm() {
         description: finalDescription,
         category,
         priority,
-        requester_email: email.trim(),
+        requester_email: (user?.email || email).trim(),
       };
 
       // create ticket from portal form
@@ -103,8 +166,50 @@ export default function GuestReportForm() {
 
       <label>
         Description (required)
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} required rows={5} />
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          required
+          rows={5}
+          style={showEnhancementPreview ? { border: '2px solid #1565c0', backgroundColor: '#e3f2fd' } : {}}
+        />
       </label>
+
+      {showEnhancementPreview && (
+        <div style={{ margin: '6px 0', padding: '8px', backgroundColor: '#f0f7ff', borderRadius: '4px', border: '1px solid #1565c0' }}>
+          <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#1565c0', marginBottom: '6px' }}>✨ Enhanced Description:</p>
+          <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+            <button
+              type="button"
+              onClick={acceptEnhancement}
+              style={{ fontSize: '0.8rem', padding: '4px 10px', backgroundColor: '#4caf50', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}
+            >
+              <span>✓</span> Accept
+            </button>
+            <button
+              type="button"
+              onClick={rejectEnhancement}
+              style={{ fontSize: '0.8rem', padding: '4px 10px', backgroundColor: '#f44336', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}
+            >
+              <span>✗</span> Reject
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!showEnhancementPreview && (
+        <div className="guest-form__ai-enhance" style={{ margin: '8px 0' }}>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={handleEnhanceDescription}
+            disabled={isEnhancing || !subject.trim() || !description.trim()}
+            style={{ width: '100%', fontSize: '0.85rem', padding: '6px 12px' }}
+          >
+            {isEnhancing ? 'Enhancing...' : '✨ Enhance Description with AI'}
+          </button>
+        </div>
+      )}
 
       <label>
         Category (required)
@@ -125,7 +230,7 @@ export default function GuestReportForm() {
       </label>
 
       <label>
-        Attachments (screenshots, logs) — max 5 files
+        Attachments (screenshots, logs) — max 5 files, 5MB each
         <input type="file" onChange={onFilesChange} multiple />
       </label>
 
@@ -139,38 +244,6 @@ export default function GuestReportForm() {
           disabled={!!user}
         />
       </label>
-
-      <div className="guest-form__ai-enhance" style={{ margin: '15px 0' }}>
-        <button
-          type="button"
-          className="secondary-button"
-          onClick={handleEnhanceDescription}
-          disabled={isEnhancing || !subject.trim() || !description.trim()}
-          style={{ width: '100%' }}
-        >
-          {isEnhancing ? 'Enhancing...' : '✨ Enhance Description with AI'}
-        </button>
-        {aiEnhancedDescription && (
-          <div className="ai-enhanced-preview" style={{ marginTop: '12px' }}>
-            <h4 style={{ fontSize: '0.9rem', marginBottom: '6px', fontWeight: '600' }}>AI Enhanced Description Preview:</h4>
-            <textarea
-              className="chat-ticket-card__textarea"
-              value={aiEnhancedDescription}
-              readOnly
-              rows={5}
-              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', backgroundColor: '#f9f9f9' }}
-            />
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => setAiEnhancedDescription(null)}
-              style={{ marginTop: '6px', fontSize: '0.8rem' }}
-            >
-              Clear AI Enhancement
-            </button>
-          </div>
-        )}
-      </div>
 
       {error && <p className="form-error" role="alert">{error}</p>}
       {message && <p className="form-success">{message}</p>}
