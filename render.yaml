@@ -37,12 +37,10 @@ services:
   # AI Service
   - type: web
     name: sps-securedesk-ai
-    runtime: python
+    runtime: image
     region: oregon
     plan: starter
-    buildCommand: export CARGO_HOME=/opt/render/project/.cargo RUSTUP_HOME=/opt/render/project/.rustup && pip install -r ai/requirements.txt
-    workingDirectory: ai
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    dockerfilePath: ai/Dockerfile
     healthCheckPath: /health
     envVars:
       - key: LLM_PROVIDER
