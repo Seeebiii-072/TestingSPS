@@ -32,7 +32,7 @@ services:
       - key: MAX_UPLOAD_SIZE_MB
         value: 10
       - key: UPLOAD_DIR
-        value: /var/data/uploads
+        value: /tmp/uploads
 
   # AI Service
   - type: web
