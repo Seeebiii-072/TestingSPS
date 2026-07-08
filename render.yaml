@@ -41,6 +41,7 @@ services:
     region: oregon
     plan: starter
     dockerfilePath: ./ai/Dockerfile
+    dockerContext: ./ai
     healthCheckPath: /health
     envVars:
       - key: LLM_PROVIDER
