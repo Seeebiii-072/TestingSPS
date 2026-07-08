@@ -15,13 +15,6 @@ const roleRedirects = {
   [ROLES.ADMINISTRATOR]: '/admin',
 };
 
-const floatingServices = [
-  { icon: '🤖', title: 'AI & Automation', desc: 'Intelligent ticket routing', x: '8%', y: '12%', delay: '0s', duration: '28s' },
-  { icon: '☁️', title: 'Cloud & DevOps', desc: 'Infrastructure management', x: '72%', y: '18%', delay: '4s', duration: '32s' },
-  { icon: '🔒', title: 'Cybersecurity', desc: 'Security approvals & compliance', x: '15%', y: '68%', delay: '8s', duration: '26s' },
-  { icon: '🔐', title: 'Identity & Access', desc: 'Zero-trust access controls', x: '68%', y: '72%', delay: '12s', duration: '30s' },
-];
-
 export default function Login() {
   const navigate = useNavigate();
   const { login, user } = useAuth();
@@ -117,28 +110,6 @@ export default function Login() {
         </div>
       </section>
       <aside className="login-visual">
-        {/* Floating service cards in background */}
-        <div className="login-visual__floating-bg" aria-hidden="true">
-          {floatingServices.map((s) => (
-            <div
-              key={s.title}
-              className="login-visual__floating-card"
-              style={{
-                left: s.x,
-                top: s.y,
-                animationDelay: s.delay,
-                animationDuration: s.duration,
-              }}
-            >
-              <span className="login-visual__floating-icon">{s.icon}</span>
-              <div>
-                <strong>{s.title}</strong>
-                <span>{s.desc}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
         {/* Decorative gradient orbs */}
         <div className="login-visual__orb login-visual__orb--1" aria-hidden="true" />
         <div className="login-visual__orb login-visual__orb--2" aria-hidden="true" />
