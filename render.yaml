@@ -65,6 +65,7 @@ services:
     region: oregon
     plan: starter
     buildCommand: pip install -r email_worker/requirements.txt
+    workingDirectory: .
     startCommand: python -m email_worker.main
     envVars:
       - key: IMAP_HOST
