@@ -2,6 +2,38 @@
 # https://render.com/docs/infrastructure-as-code
 
 services:
+  # Backend API
+  - type: web
+    name: sps-securedesk-backend
+    runtime: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r backend/requirements.txt
+    workingDirectory: backend
+    startCommand: alembic -c alembic.ini upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        sync: false  # Set manually in Render dashboard
+      - key: DATABASE_URL_SYNC
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: INTERNAL_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        value: https://sps-securedesk-frontend.onrender.com
+      - key: AI_SERVICE_URL
+        value: http://sps-securedesk-ai:8001
+      - key: SEED_DEFAULT_USERS
+        value: false
+      - key: MAX_UPLOAD_SIZE_MB
+        value: 10
+      - key: UPLOAD_DIR
+        value: /tmp/uploads
+
   # AI Service
   - type: web
     name: sps-securedesk-ai
@@ -9,6 +41,7 @@ services:
     region: oregon
     plan: starter
     buildCommand: pip install -r ai/requirements.txt
+    workingDirectory: .
     startCommand: uvicorn ai.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
@@ -21,46 +54,38 @@ services:
       - key: OPENROUTER_API_KEY
         sync: false
       - key: BACKEND_URL
-        value: http://sps-securedesk-ai-backend:10000
+        value: http://sps-securedesk-backend:8000
       - key: CORS_ORIGINS
         value: https://sps-securedesk-frontend.onrender.com
 
-  # Email Worker (IMAP/SMTP background pipeline)
-  - type: worker
-    name: sps-securedesk-email-worker
-    runtime: python
+  # Frontend (static site)
+  - type: web
+    name: sps-securedesk-frontend
+    runtime: static
     region: oregon
-    plan: starter
-    buildCommand: pip install -r email_worker/requirements.txt
-    startCommand: python -m email_worker.main
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
     envVars:
-      - key: IMAP_HOST
-        sync: false
-      - key: IMAP_PORT
-        value: 993
-      - key: IMAP_USER
-        sync: false
-      - key: IMAP_PASSWORD
-        sync: false
-      - key: IMAP_POLL_INTERVAL_SECONDS
-        value: 30
-      - key: SMTP_HOST
-        sync: false
-      - key: SMTP_PORT
-        sync: false
-      - key: SMTP_USER
-        sync: false
-      - key: SMTP_PASSWORD
-        sync: false
-      - key: EMAIL_FROM_ADDRESS
-        sync: false
-      - key: EMAIL_FROM_NAME
-        value: SPS Helpdesk
-      - key: BACKEND_API_URL
-        value: http://sps-securedesk-ai-backend:10000
-      - key: AI_SERVICE_URL
-        value: http://sps-securedesk-ai:10000
-      - key: INTERNAL_API_KEY
-        sync: false
-      - key: PORTAL_URL
-        value: https://sps-securedesk-frontend.onrender.com
+      - key: VITE_API_URL
+        value: https://sps-securedesk-backend.onrender.com
+      - key: VITE_AI_URL
+        value: https://sps-securedesk-ai.onrender.com
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-XSS-Protection
+        value: 1; mode=block
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=31536000; includeSubDomains
+      - path: /*
+        name: Content-Security-Policy
+        value: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.onrender.com; img-src 'self' data:; font-src 'self'
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
