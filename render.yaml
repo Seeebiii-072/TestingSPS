@@ -4,7 +4,7 @@
 services:
   # Backend API
   - type: web
-    name: sps-securedesk-backend
+    name: sps-securedesk-ai-backend
     runtime: python
     region: oregon
     plan: starter
@@ -54,7 +54,7 @@ services:
       - key: OPENROUTER_API_KEY
         sync: false
       - key: BACKEND_URL
-        value: http://sps-securedesk-backend:8000
+        value: http://sps-securedesk-ai-backend:10000
       - key: CORS_ORIGINS
         value: https://sps-securedesk-frontend.onrender.com
 
@@ -91,7 +91,7 @@ services:
       - key: EMAIL_FROM_NAME
         value: SPS Helpdesk
       - key: BACKEND_API_URL
-        value: http://sps-securedesk-backend:8000
+        value: http://sps-securedesk-ai-backend:10000
       - key: AI_SERVICE_URL
         value: http://sps-securedesk-ai:8001
       - key: INTERNAL_API_KEY
@@ -108,7 +108,7 @@ services:
     staticPublishPath: ./dist
     envVars:
       - key: VITE_API_URL
-        value: https://sps-securedesk-backend.onrender.com
+        value: https://sps-securedesk-ai-backend.onrender.com
       - key: VITE_AI_URL
         value: https://sps-securedesk-ai.onrender.com
     headers:
