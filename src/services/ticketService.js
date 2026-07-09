@@ -262,9 +262,15 @@ export async function uploadFile(id, file, requesterEmail = null) {
   
   // If requesterEmail is provided, use the public endpoint (for guests)
   // Otherwise use the authenticated endpoint
-  let url = requesterEmail
-    ? `/tickets/${id}/attachments/public?requester_email=${encodeURIComponent(requesterEmail)}`
-    : `/tickets/${id}/attachments`;
+  // id should be a UUID string - if it's a ticket number, we need to handle it differently
+  let url;
+  if (requesterEmail) {
+    // For public endpoint, we need the ticket UUID, not the ticket number
+    // The id passed should already be the UUID from the ticket creation response
+    url = `/tickets/${id}/attachments/public?requester_email=${encodeURIComponent(requesterEmail)}`;
+  } else {
+    url = `/tickets/${id}/attachments`;
+  }
   
   const response = await api.post(url, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
