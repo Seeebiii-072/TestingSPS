@@ -305,16 +305,29 @@ async def download_attachment(
     # For non-authenticated users, check if requester matches - but since this is a web app,
     # we require authentication. The email link access uses the public endpoint.
 
-    file_path = Path(attachment.file_path)
-    if not file_path.is_absolute():
-        base_dir = _upload_dir()
-        file_path = base_dir / attachment.file_path
+    # The file_path is stored as a relative path like "uploads/uuid/filename.pdf"
+    # The path already includes "uploads" so we should use it directly relative to CWD
+    file_path_str = attachment.file_path
     
     # Debug logging to help diagnose path issues
     import sys
     print(f"DEBUG: Attachment file_path from DB: {attachment.file_path}", file=sys.stderr)
-    print(f"DEBUG: Resolved file_path: {file_path}", file=sys.stderr)
     print(f"UPLOAD_DIR from env: {os.getenv('UPLOAD_DIR', './uploads')}", file=sys.stderr)
+    print(f"DEBUG: CWD: {Path.cwd()}", file=sys.stderr)
+    
+    file_path = Path(file_path_str)
+    if not file_path.is_absolute():
+        # Try resolving from CWD
+        candidate = Path.cwd() / file_path_str
+        print(f"DEBUG: Candidate path from CWD: {candidate}", file=sys.stderr)
+        if candidate.exists():
+            file_path = candidate
+        else:
+            # Try in case the path doesn't include "uploads" prefix
+            alt_candidate = Path.cwd() / "uploads" / file_path_str
+            print(f"DEBUG: Alternative path: {alt_candidate}", file=sys.stderr)
+            if alt_candidate.exists():
+                file_path = alt_candidate
     
     if not file_path.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"File not found: {file_path}")
