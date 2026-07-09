@@ -251,10 +251,17 @@ export async function addEvent(id, data) {
   return normalizeTimelineEvent(response.data);
 }
 
-export async function uploadFile(id, file) {
+export async function uploadFile(id, file, requesterEmail = null) {
   const formData = new FormData();
   formData.append('file', file);
-  const response = await api.post(`/tickets/${id}/attachments`, formData, {
+  
+  // If requesterEmail is provided, use the public endpoint (for guests)
+  // Otherwise use the authenticated endpoint
+  let url = requesterEmail
+    ? `/tickets/${id}/attachments/public?requester_email=${encodeURIComponent(requesterEmail)}`
+    : `/tickets/${id}/attachments`;
+  
+  const response = await api.post(url, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return normalizeAttachment(response.data, id);

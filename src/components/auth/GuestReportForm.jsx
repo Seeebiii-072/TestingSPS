@@ -134,9 +134,10 @@ export default function GuestReportForm() {
       if (files.length && ticket?.id) {
         // limit: 5 files
         const uploadFiles = files.slice(0, 5);
+        const requesterEmail = user?.email || email;
         for (const f of uploadFiles) {
           try {
-            await ticketService.uploadFile(ticket.id, f);
+            await ticketService.uploadFile(ticket.id, f, requesterEmail);
           } catch (uploadErr) {
             console.warn('Attachment upload failed', uploadErr);
           }
