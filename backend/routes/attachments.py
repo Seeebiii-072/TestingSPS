@@ -309,8 +309,15 @@ async def download_attachment(
     if not file_path.is_absolute():
         base_dir = _upload_dir()
         file_path = base_dir / attachment.file_path
+    
+    # Debug logging to help diagnose path issues
+    import sys
+    print(f"DEBUG: Attachment file_path from DB: {attachment.file_path}", file=sys.stderr)
+    print(f"DEBUG: Resolved file_path: {file_path}", file=sys.stderr)
+    print(f"UPLOAD_DIR from env: {os.getenv('UPLOAD_DIR', './uploads')}", file=sys.stderr)
+    
     if not file_path.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found on server")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"File not found: {file_path}")
 
     actor_id = current_user.id if current_user else None
 
