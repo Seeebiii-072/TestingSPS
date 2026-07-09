@@ -213,6 +213,75 @@ async def upload_attachment_internal(
     return attachment
 
 
+@router.post("/{ticket_id}/attachments/public", response_model=AttachmentRead, status_code=status.HTTP_201_CREATED)
+async def upload_attachment_public(
+    ticket_id: uuid.UUID,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    requester_email: Annotated[str, Query(description="Email of the requester to verify ownership")],
+    file: UploadFile = File(...),
+) -> Attachment:
+    """Public endpoint for guests to upload attachments to their tickets (no auth required)."""
+    ticket = await ticket_service.get_ticket_by_id(db, ticket_id)
+    if not ticket:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
+    
+    # Verify the requester email matches
+    if ticket.requester_email.lower() != requester_email.lower():
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to upload to this ticket")
+
+    max_size = _max_upload_size_bytes()
+    content = await file.read(max_size + 1)
+    if len(content) > max_size:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="File exceeds 5MB limit")
+
+    mime_type = _detect_mime(content, file.content_type)
+    base_dir = _upload_dir() / str(ticket_id)
+    base_dir.mkdir(parents=True, exist_ok=True)
+    original_name = _safe_filename(file.filename or "attachment")
+    stored_name = f"{uuid.uuid4()}_{original_name}"
+    file_path = base_dir / stored_name
+    file_path.write_bytes(content)
+
+    # Use a system user ID (ai-agent) for guest uploads
+    from sqlalchemy import select
+    system_user = await db.scalar(select(User).where(User.email == "ai-agent@sps.com"))
+    uploaded_by_id = system_user.id if system_user else None
+
+    attachment = Attachment(
+        ticket_id=ticket_id,
+        uploaded_by=uploaded_by_id,
+        filename=original_name,
+        file_path=str(file_path),
+        file_size=len(content),
+        mime_type=mime_type,
+    )
+    db.add(attachment)
+    db.add(
+        TimelineEvent(
+            ticket_id=ticket_id,
+            event_type=TimelineEventType.FILE_UPLOADED,
+            actor_id=uploaded_by_id,
+            actor_email="ai-agent@sps.com",
+            content=original_name,
+            is_public=True,
+            channel="portal",
+        )
+    )
+    await write_audit_log(
+        db,
+        ticket_id=ticket_id,
+        actor_id=uploaded_by_id,
+        action="ticket.attachment_uploaded",
+        channel="portal",
+        details={"filename": original_name, "mime_type": mime_type, "file_size": len(content)},
+        ip_address=_client_ip(request),
+    )
+    await db.commit()
+    await db.refresh(attachment)
+    return attachment
+
+
 @router.get("/{ticket_id}/attachments/{attachment_id}/file")
 async def download_attachment(
     ticket_id: uuid.UUID,
