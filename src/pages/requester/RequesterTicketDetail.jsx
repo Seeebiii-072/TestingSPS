@@ -210,22 +210,28 @@ export default function RequesterTicketDetail() {
             <p className="ticket-detail-ai-summary">{ticket.aiSummary}</p>
           </Card>
 
-          <Card title="Attachments" subtitle={`${ticket.attachments.length} files attached.`}>
-            {ticket.attachments.length ? (
-              <div className="ticket-attachments">
-                {ticket.attachments.map((attachment) => (
-                  <span key={attachment.id}>
-                    <span aria-hidden="true">AT</span>
-                    <span>
-                      <strong>{attachment.name}</strong>
-                      <small>
-                        {attachment.type} &middot; {attachment.size}
-                      </small>
-                    </span>
-                  </span>
-                ))}
-              </div>
-            ) : (
+           <Card title="Attachments" subtitle={`${ticket.attachments.length} files attached.`}>
+             {ticket.attachments.length ? (
+               <div className="ticket-attachments">
+                 {ticket.attachments.map((attachment) => (
+                   <a
+                     key={attachment.id}
+                     href={attachment.url}
+                     aria-label={`Open attachment ${attachment.name}`}
+                     target="_blank"
+                     rel="noopener noreferrer"
+                   >
+                     <span aria-hidden="true">AT</span>
+                     <span>
+                       <strong>{attachment.name}</strong>
+                       <small>
+                         {attachment.type} &middot; {attachment.size}
+                       </small>
+                     </span>
+                   </a>
+                 ))}
+               </div>
+             ) : (
               <p className="ticket-attachments-empty">No attachments on this ticket.</p>
             )}
           </Card>
