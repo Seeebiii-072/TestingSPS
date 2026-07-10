@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-COPY backend/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # --- Production stage ---
@@ -29,7 +29,7 @@ COPY --from=builder /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
 
 # Copy backend code
-COPY backend/ .
+COPY . .
 
 # Create upload directory with restricted permissions
 RUN mkdir -p /var/data/uploads && chown -R securedesk:securedesk /var/data/uploads
@@ -49,4 +49,4 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1
 
 # Run with production settings
-CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --workers 2 --limit-concurrency 100 --backlog 2048"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2 --limit-concurrency 100 --backlog 2048"]
