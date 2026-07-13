@@ -21,6 +21,7 @@ const eventCodes = {
   'Approval requested': 'AP',
   'Approval resolved': 'AP',
   'Field update': 'FU',
+  'File Uploaded': 'AT',
 };
 
 function formatEventDate(value) {
@@ -33,7 +34,17 @@ function formatEventDate(value) {
   }).format(new Date(value));
 }
 
-export default function TicketTimeline({ events }) {
+function isFileUploadEvent(event) {
+  return event.eventType === 'file_uploaded' || event.type === 'File Uploaded';
+}
+
+function findEventAttachment(event, attachments) {
+  if (!isFileUploadEvent(event)) return null;
+  const eventFilename = String(event.message || event.content || '').trim().toLowerCase();
+  return attachments.find((attachment) => attachment.name.toLowerCase() === eventFilename) || null;
+}
+
+export default function TicketTimeline({ events, attachments = [], onOpenAttachment }) {
   const timeline = [...events].sort(
     (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
   );
@@ -52,23 +63,37 @@ export default function TicketTimeline({ events }) {
       </div>
 
       <ol className="ticket-timeline__list">
-        {timeline.map((event) => (
-          <li className="ticket-timeline__event" key={event.id}>
-            <span className="ticket-timeline__event-icon" aria-hidden="true">
-              {eventCodes[event.type] || 'EV'}
-            </span>
-            <div className="ticket-timeline__event-card">
-              <div className="ticket-timeline__event-heading">
-                <div>
-                  <strong>{event.type}</strong>
-                  <span>{event.actor}</span>
+        {timeline.map((event) => {
+          const attachment = findEventAttachment(event, attachments);
+          return (
+            <li className="ticket-timeline__event" key={event.id}>
+              <span className="ticket-timeline__event-icon" aria-hidden="true">
+                {eventCodes[event.type] || 'EV'}
+              </span>
+              <div className="ticket-timeline__event-card">
+                <div className="ticket-timeline__event-heading">
+                  <div>
+                    <strong>{event.type}</strong>
+                    <span>{event.actor}</span>
+                  </div>
+                  <time dateTime={event.createdAt}>{formatEventDate(event.createdAt)}</time>
                 </div>
-                <time dateTime={event.createdAt}>{formatEventDate(event.createdAt)}</time>
+                {attachment && onOpenAttachment ? (
+                  <button
+                    type="button"
+                    className="ticket-timeline__attachment"
+                    onClick={() => onOpenAttachment(attachment)}
+                  >
+                    <span aria-hidden="true">AT</span>
+                    <span>{attachment.name}</span>
+                  </button>
+                ) : (
+                  <p>{event.message}</p>
+                )}
               </div>
-              <p>{event.message}</p>
-            </div>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ol>
     </div>
   );

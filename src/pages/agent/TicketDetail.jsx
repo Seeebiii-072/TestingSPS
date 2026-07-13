@@ -174,7 +174,11 @@ export default function TicketDetail() {
             subtitle="Every channel event, agent action, and status change in one record."
             actions={<Badge tone="blue">{ticket.timeline.length} events</Badge>}
           >
-            <TicketTimeline events={ticket.timeline} />
+            <TicketTimeline
+              events={ticket.timeline}
+              attachments={ticket.attachments}
+              onOpenAttachment={handleOpenAttachment}
+            />
           </Card>
 
           {!isLocked && (

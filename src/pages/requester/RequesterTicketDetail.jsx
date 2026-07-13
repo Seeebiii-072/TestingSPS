@@ -8,7 +8,7 @@ import FileUpload from '../../components/forms/FileUpload';
 import TicketPriorityBadge from '../../components/tickets/TicketPriorityBadge';
 import TicketStatusBadge from '../../components/tickets/TicketStatusBadge';
 import TicketTimeline from '../../components/tickets/TicketTimeline';
-import { addEvent, getTicket } from '../../services/ticketService.js';
+import { addEvent, getTicket, openAttachment } from '../../services/ticketService.js';
 
 function riskTone(risk) {
   if (risk === 'High Risk') return 'red';
@@ -73,6 +73,15 @@ export default function RequesterTicketDetail() {
       setError('Your update could not be added to this ticket.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleOpenAttachment = async (attachment) => {
+    setError('');
+    try {
+      await openAttachment(ticket.id, attachment);
+    } catch {
+      setError('The attachment could not be opened.');
     }
   };
 
@@ -144,7 +153,11 @@ export default function RequesterTicketDetail() {
             subtitle="Public updates and requester-visible activity for this request."
             actions={<Badge tone="blue">{visibleTimeline.length} updates</Badge>}
           >
-            <TicketTimeline events={visibleTimeline} />
+            <TicketTimeline
+              events={visibleTimeline}
+              attachments={ticket.attachments}
+              onOpenAttachment={handleOpenAttachment}
+            />
           </Card>
 
           <Card title="Add Update" subtitle="Send a public update to the service desk.">
@@ -214,12 +227,11 @@ export default function RequesterTicketDetail() {
              {ticket.attachments.length ? (
                <div className="ticket-attachments">
                  {ticket.attachments.map((attachment) => (
-                   <a
+                   <button
+                     type="button"
                      key={attachment.id}
-                     href={attachment.url}
                      aria-label={`Open attachment ${attachment.name}`}
-                     target="_blank"
-                     rel="noopener noreferrer"
+                     onClick={() => handleOpenAttachment(attachment)}
                    >
                      <span aria-hidden="true">AT</span>
                      <span>
@@ -228,7 +240,7 @@ export default function RequesterTicketDetail() {
                          {attachment.type} &middot; {attachment.size}
                        </small>
                      </span>
-                   </a>
+                   </button>
                  ))}
                </div>
              ) : (
