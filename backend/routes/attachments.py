@@ -73,16 +73,33 @@ def _detect_mime(content: bytes, provided_mime: str | None) -> str:
 
 def _resolve_attachment_file(attachment: Attachment) -> Path:
     file_path = Path(attachment.file_path)
-    if file_path.is_absolute():
+    relative_parts = []
+    if attachment.ticket_id:
+        relative_parts.append(str(attachment.ticket_id))
+    relative_parts.append(file_path.name)
+    relative_path = Path(*relative_parts)
+
+    candidate_roots = []
+    env_upload_dir = os.getenv("UPLOAD_DIR")
+    if env_upload_dir:
+        candidate_roots.append(Path(env_upload_dir))
+    candidate_roots.extend([Path.cwd() / "uploads", Path("/tmp/uploads")])
+
+    if file_path.is_absolute() and file_path.exists():
         return file_path
 
-    candidate = Path.cwd() / attachment.file_path
-    if candidate.exists():
-        return candidate
+    if file_path.is_absolute():
+        candidate_roots.insert(0, file_path.parent.parent if len(file_path.parents) > 1 else file_path.parent)
+        candidate_roots.insert(0, file_path.parent)
 
-    alt_candidate = Path.cwd() / "uploads" / attachment.file_path
-    if alt_candidate.exists():
-        return alt_candidate
+    for root in candidate_roots:
+        for candidate in (
+            root / file_path.name,
+            root / relative_path,
+            root / file_path,
+        ):
+            if candidate.exists():
+                return candidate
 
     return file_path
 
