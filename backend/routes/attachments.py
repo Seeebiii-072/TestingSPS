@@ -71,6 +71,38 @@ def _detect_mime(content: bytes, provided_mime: str | None) -> str:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type")
 
 
+def _resolve_attachment_file(attachment: Attachment) -> Path:
+    file_path = Path(attachment.file_path)
+    if file_path.is_absolute():
+        return file_path
+
+    candidate = Path.cwd() / attachment.file_path
+    if candidate.exists():
+        return candidate
+
+    alt_candidate = Path.cwd() / "uploads" / attachment.file_path
+    if alt_candidate.exists():
+        return alt_candidate
+
+    return file_path
+
+
+def _serve_attachment_file(attachment: Attachment, *, request: Request, db: AsyncSession, actor_id: uuid.UUID | None) -> FileResponse:
+    file_path = _resolve_attachment_file(attachment)
+    if not file_path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"File not found: {file_path}")
+
+    inline_types = {"application/pdf", "image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp", "text/plain"}
+    disposition = "inline" if attachment.mime_type in inline_types else "attachment"
+
+    return FileResponse(
+        path=str(file_path),
+        filename=attachment.filename,
+        media_type=attachment.mime_type,
+        content_disposition_type=disposition,
+    )
+
+
 @router.post("/{ticket_id}/attachments", response_model=AttachmentRead, status_code=status.HTTP_201_CREATED)
 async def upload_attachment(
     ticket_id: uuid.UUID,
@@ -305,33 +337,6 @@ async def download_attachment(
     # For non-authenticated users, check if requester matches - but since this is a web app,
     # we require authentication. The email link access uses the public endpoint.
 
-    # The file_path is stored as a relative path like "uploads/uuid/filename.pdf"
-    # The path already includes "uploads" so we should use it directly relative to CWD
-    file_path_str = attachment.file_path
-    
-    # Debug logging to help diagnose path issues
-    import sys
-    print(f"DEBUG: Attachment file_path from DB: {attachment.file_path}", file=sys.stderr)
-    print(f"UPLOAD_DIR from env: {os.getenv('UPLOAD_DIR', './uploads')}", file=sys.stderr)
-    print(f"DEBUG: CWD: {Path.cwd()}", file=sys.stderr)
-    
-    file_path = Path(file_path_str)
-    if not file_path.is_absolute():
-        # Try resolving from CWD
-        candidate = Path.cwd() / file_path_str
-        print(f"DEBUG: Candidate path from CWD: {candidate}", file=sys.stderr)
-        if candidate.exists():
-            file_path = candidate
-        else:
-            # Try in case the path doesn't include "uploads" prefix
-            alt_candidate = Path.cwd() / "uploads" / file_path_str
-            print(f"DEBUG: Alternative path: {alt_candidate}", file=sys.stderr)
-            if alt_candidate.exists():
-                file_path = alt_candidate
-    
-    if not file_path.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"File not found: {file_path}")
-
     actor_id = current_user.id if current_user else None
 
     await write_audit_log(
@@ -345,14 +350,34 @@ async def download_attachment(
     )
     await db.commit()
 
-    # For inline viewing (images, PDFs), use inline content-disposition
-    # This allows the browser to display the file directly in the tab
-    inline_types = {"application/pdf", "image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp", "text/plain"}
-    disposition = "inline" if attachment.mime_type in inline_types else "attachment"
-    
-    return FileResponse(
-        path=str(file_path),
-        filename=attachment.filename,
-        media_type=attachment.mime_type,
-        content_disposition_type=disposition,
+    return _serve_attachment_file(attachment, request=request, db=db, actor_id=actor_id)
+
+
+@router.get("/public/{ticket_number}/attachments/{attachment_id}/file")
+async def download_attachment_public(
+    ticket_number: str,
+    attachment_id: uuid.UUID,
+    email: Annotated[str, Query(description="Requester email to verify ownership")],
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    ticket = await ticket_service.get_ticket_by_number_and_email(db, ticket_number, email)
+    if not ticket:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found")
+
+    attachment = await db.get(Attachment, attachment_id)
+    if not attachment or attachment.ticket_id != ticket.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment not found")
+
+    await write_audit_log(
+        db,
+        ticket_id=ticket.id,
+        actor_id=None,
+        action="ticket.attachment_downloaded",
+        channel="portal",
+        details={"attachment_id": str(attachment_id), "filename": attachment.filename, "mode": "public"},
+        ip_address=_client_ip(request),
     )
+    await db.commit()
+
+    return _serve_attachment_file(attachment, request=request, db=db, actor_id=None)

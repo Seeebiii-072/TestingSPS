@@ -8,7 +8,7 @@ import FileUpload from '../../components/forms/FileUpload';
 import TicketPriorityBadge from '../../components/tickets/TicketPriorityBadge';
 import TicketStatusBadge from '../../components/tickets/TicketStatusBadge';
 import TicketTimeline from '../../components/tickets/TicketTimeline';
-import { addEvent, getTicket, openAttachment } from '../../services/ticketService.js';
+import { addEvent, getTicket, getPublicAttachmentUrl, openAttachment } from '../../services/ticketService.js';
 
 function riskTone(risk) {
   if (risk === 'High Risk') return 'red';
@@ -79,7 +79,11 @@ export default function RequesterTicketDetail() {
   const handleOpenAttachment = async (attachment) => {
     setError('');
     try {
-      await openAttachment(ticket.id, attachment);
+      const publicUrl = getPublicAttachmentUrl(ticket.ticketNumber || ticket.id, ticket.requesterEmail, attachment);
+      const opened = window.open(publicUrl, '_blank');
+      if (!opened) {
+        await openAttachment(ticket.id, attachment);
+      }
     } catch {
       setError('The attachment could not be opened.');
     }

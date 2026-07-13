@@ -300,6 +300,10 @@ export async function openAttachment(ticketId, attachment) {
   }
 }
 
+export function getPublicAttachmentUrl(ticketNumber, email, attachment) {
+  return `${API_URL}/tickets/public/${encodeURIComponent(ticketNumber)}/attachments/${attachment.id}/file?email=${encodeURIComponent(email)}`;
+}
+
 export async function downloadAttachment(ticketId, attachment) {
   return openAttachment(ticketId, attachment);
 }
