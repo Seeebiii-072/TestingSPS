@@ -6,8 +6,11 @@ const aiApi = axios.create({
 });
 
 export async function enhanceDescription(subject, description) {
-  const response = await aiApi.post('/api/summarise', { subject, description });
-  return response.data;
+  const response = await aiApi.post('/api/enhance-description', { subject, description });
+  return {
+    ...response.data,
+    enhanced_description: response.data.enhanced_description?.replace(/\s+/g, ' ').trim(),
+  };
 }
 
 const aiService = {

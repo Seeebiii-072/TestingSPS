@@ -54,18 +54,6 @@ export default function RequestForm({
       const response = await enhanceDescription(form.subject.trim(), form.description.trim());
       let enhanced = response.summary || response.enhanced_description || response.description;
       
-      // Fix first-person perspective: replace all variations of "user" with "I" or "my"
-      enhanced = enhanced
-        .replace(/[Tt]he [Uu]ser/g, 'I')
-        .replace(/the user/g, 'I')
-        .replace(/[Tt]he [Uu]ser's/g, "My")
-        .replace(/[Uu]ser's/g, "my")
-        .replace(/\b[Tt]he [Uu]ser\b/g, 'I')
-        .replace(/\bthe user\b/g, 'I')
-        .replace(/I'm/g, 'I am')
-        .replace(/\bi am\b/gi, 'I am')
-        .replace(/  +/g, ' ');
-      
       setOriginalDescription(form.description);
       setAiEnhancedDescription(enhanced);
       setForm((current) => ({ ...current, description: enhanced }));

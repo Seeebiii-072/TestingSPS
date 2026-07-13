@@ -278,6 +278,32 @@ export async function uploadFile(id, file, requesterEmail = null) {
   return normalizeAttachment(response.data, id);
 }
 
+export async function openAttachment(ticketId, attachment) {
+  const opened = window.open('about:blank', '_blank');
+  if (!opened) {
+    throw new Error('Attachment popup blocked');
+  }
+
+  try {
+    const response = await api.get(`/tickets/${ticketId}/attachments/${attachment.id}/file`, {
+      responseType: 'blob',
+    });
+    const blob = new Blob([response.data], {
+      type: response.headers['content-type'] || attachment.type || 'application/octet-stream',
+    });
+    const objectUrl = URL.createObjectURL(blob);
+    opened.location.href = objectUrl;
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+  } catch (error) {
+    opened.close();
+    throw error;
+  }
+}
+
+export async function downloadAttachment(ticketId, attachment) {
+  return openAttachment(ticketId, attachment);
+}
+
 export async function approveTicket(id, decision, reason) {
   const response = await api.post(`/tickets/${id}/approve`, { decision, reason });
   return normalizeTicket(response.data);
@@ -329,6 +355,8 @@ const ticketService = {
   updateTicket,
   addEvent,
   uploadFile,
+  openAttachment,
+  downloadAttachment,
   approveTicket,
   filterTickets,
   updateTicketStatus,

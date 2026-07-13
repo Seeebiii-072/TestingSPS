@@ -57,25 +57,6 @@ export default function GuestReportForm() {
       const response = await enhanceDescription(subject.trim(), description.trim());
       let enhanced = response.enhanced_description || response.summary || response.description;
       
-      // Fix first-person perspective: replace all variations of "user" with "I" or "my"
-      enhanced = enhanced
-        // Replace "The User" with "I" (all case variations)
-        .replace(/The [Uu]ser/g, 'I')
-        .replace(/[Tt]he [Uu]ser/g, 'I')
-        .replace(/the user/g, 'I')
-        .replace(/The user's/g, "My")
-        .replace(/[Tt]he [Uu]ser's/g, "My")
-        .replace(/User's/g, "My")
-        .replace(/[Uu]ser's/g, "my")
-        .replace(/\bThe [Uu]ser\b/g, 'I')
-        .replace(/\b[Tt]he [Uu]ser\b/g, 'I')
-        .replace(/\bthe user\b/g, 'I')
-        // Replace "I'm" variations
-        .replace(/I'm/g, 'I am')
-        .replace(/\bi am\b/gi, 'I am')
-        // Clean up double spaces
-        .replace(/  +/g, ' ');
-      
       // Store original description before enhancing
       setOriginalDescription(description);
       setAiEnhancedDescription(enhanced);

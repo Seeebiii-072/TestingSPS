@@ -348,11 +348,11 @@ async def download_attachment(
     # For inline viewing (images, PDFs), use inline content-disposition
     # This allows the browser to display the file directly in the tab
     inline_types = {"application/pdf", "image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp", "text/plain"}
-    disposition = "inline" if attachment.mime_type in inline_types else f'attachment; filename="{attachment.filename}"'
+    disposition = "inline" if attachment.mime_type in inline_types else "attachment"
     
     return FileResponse(
         path=str(file_path),
         filename=attachment.filename,
         media_type=attachment.mime_type,
-        content_disposition=disposition,
+        content_disposition_type=disposition,
     )

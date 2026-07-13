@@ -9,7 +9,7 @@ import TicketPriorityBadge from '../../components/tickets/TicketPriorityBadge';
 import TicketReplyBox from '../../components/tickets/TicketReplyBox';
 import TicketStatusBadge from '../../components/tickets/TicketStatusBadge';
 import TicketTimeline from '../../components/tickets/TicketTimeline';
-import { addEvent, assignTicket, escalateTicket, getTicket, updateTicket, updateTicketStatus } from '../../services/ticketService.js';
+import { addEvent, assignTicket, escalateTicket, getTicket, openAttachment, updateTicket, updateTicketStatus } from '../../services/ticketService.js';
 
 function riskTone(risk) {
   if (risk === 'High Risk') return 'red';
@@ -94,6 +94,15 @@ export default function TicketDetail() {
       setTicket(updated);
     } catch {
       setError('The status change could not be saved.');
+    }
+  };
+
+  const handleOpenAttachment = async (attachment) => {
+    setError('');
+    try {
+      await openAttachment(ticket.id, attachment);
+    } catch {
+      setError('The attachment could not be opened.');
     }
   };
 
@@ -293,12 +302,11 @@ export default function TicketDetail() {
             {ticket.attachments.length ? (
               <div className="ticket-attachments">
                 {ticket.attachments.map((attachment) => (
-                   <a
-                     href={attachment.url}
+                   <button
+                     type="button"
                      key={attachment.id}
                      aria-label={`Open attachment ${attachment.name}`}
-                     target="_blank"
-                     rel="noopener noreferrer"
+                     onClick={() => handleOpenAttachment(attachment)}
                    >
                     <span aria-hidden="true">AT</span>
                     <span>
@@ -307,7 +315,7 @@ export default function TicketDetail() {
                         {attachment.type} &middot; {attachment.size}
                       </small>
                     </span>
-                  </a>
+                  </button>
                 ))}
               </div>
             ) : (
