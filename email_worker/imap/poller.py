@@ -43,6 +43,13 @@ def _soc_routing_rule(classify: ClassifyResponse) -> str:
     return classify.team
 
 
+def _email_description(email_data: ParsedEmail) -> str:
+    description = (email_data.plain_text_body or email_data.html_body or "").strip()
+    if description:
+        return description
+    return email_data.subject or "(no email body)"
+
+
 class IMAPPoller:
     """Async IMAP mailbox poller that fetches and processes unread emails."""
 
@@ -214,7 +221,7 @@ class IMAPPoller:
             classify = await asyncio.wait_for(
                 self.ticket_client.classify_email(
                     subject=email_data.subject,
-                    description=email_data.plain_text_body or email_data.html_body or "",
+                    description=_email_description(email_data),
                 ),
                 timeout=60.0,
             )
@@ -224,7 +231,7 @@ class IMAPPoller:
                 email_data.from_address,
             )
             classify = ClassifyResponse(
-                category="general_it", priority="medium", team="it"
+                category="general_it", priority="medium", risk_level="standard", team="it"
             )
         except Exception as e:
             logger.warning(
@@ -233,7 +240,7 @@ class IMAPPoller:
                 e,
             )
             classify = ClassifyResponse(
-                category="general_it", priority="medium", team="it"
+                category="general_it", priority="medium", risk_level="standard", team="it"
             )
         logger.info(
             "Classification result: category=%s, priority=%s, team=%s",
@@ -244,7 +251,7 @@ class IMAPPoller:
 
         team = _soc_routing_rule(classify)
 
-        description = email_data.plain_text_body or email_data.html_body or ""
+        description = _email_description(email_data)
 
         # Append attachment metadata to the description so it is visible on the ticket
         if email_data.attachments:
@@ -314,6 +321,27 @@ class IMAPPoller:
             ticket_uuid,
             email_data.from_address,
         )
+
+        # Send the acknowledgement directly from the IMAP worker so the
+        # requester gets confirmation even if the backend event listener lags.
+        try:
+            await self.email_sender.send_ack_email(
+                to_email=email_data.from_address,
+                ticket_id=ticket_number,
+                subject=email_data.subject,
+                requester_name=email_data.from_name or email_data.from_address,
+            )
+            logger.info(
+                "ACK email sent directly for email-created ticket %s",
+                ticket_number,
+            )
+        except Exception as email_err:
+            logger.error(
+                "Failed to send direct ACK email for ticket %s: %s",
+                ticket_number,
+                email_err,
+                exc_info=True,
+            )
 
         # Upload email attachments as actual files
         if email_data.attachments and ticket_uuid:

@@ -74,6 +74,7 @@ def _build_event_data(event: TimelineEvent, ticket: Ticket) -> dict[str, Any]:
         "requester_name": requester_name,
         "subject": ticket.subject,
         "ticket_number": ticket.ticket_number,
+        "source": ticket.source.value,
     }
 
     mapped_type = EVENT_TYPE_MAP.get(event.event_type, "")

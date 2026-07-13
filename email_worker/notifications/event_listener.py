@@ -79,7 +79,12 @@ class EventListener:
             ticket_ref = backend_event.ticket_number or backend_event.ticket_id
 
             if backend_event.event_type == "ticket_created":
-                if requester_email:
+                if str(data.get("source", "")).lower() == "email":
+                    logger.info(
+                        "Skipping duplicate ticket_created ACK in event listener for email-originated ticket %s",
+                        ticket_ref,
+                    )
+                elif requester_email:
                     await self.email_sender.send_ack_email(
                         to_email=requester_email,
                         ticket_id=ticket_ref,
