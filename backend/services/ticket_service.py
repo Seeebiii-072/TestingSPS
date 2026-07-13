@@ -55,7 +55,12 @@ def user_can_view_all_tickets(user: User) -> bool:
 
 
 def user_can_view_ticket(user: User, ticket: Ticket) -> bool:
-    return user_can_view_all_tickets(user) or ticket.requester_id == user.id
+    if user_can_view_all_tickets(user):
+        return True
+
+    # Email-created tickets may not have requester_id populated, so allow the
+    # authenticated requester to view by matching their email as well.
+    return ticket.requester_id == user.id or ticket.requester_email.lower() == user.email.lower()
 
 
 def _default_risk_level(category: TicketCategory) -> RiskLevel:
